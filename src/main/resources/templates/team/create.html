@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Create Team - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        .form-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .page-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+            border-radius: 15px;
+        }
+        .form-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .form-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .form-body {
+            padding: 30px;
+        }
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+        .form-section-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .form-section-title i {
+            margin-right: 10px;
+            color: #28a745;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            padding: 12px 15px;
+            transition: all 0.3s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        .btn-secondary {
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 500;
+        }
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e9ecef;
+            z-index: -1;
+        }
+        .step {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #6c757d;
+            position: relative;
+        }
+        .step.active {
+            border-color: #28a745;
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .step.completed {
+            border-color: #28a745;
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .help-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .character-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .member-preview {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+        }
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #495057;
+            margin-right: 15px;
+        }
+        .member-info {
+            flex: 1;
+        }
+        .member-name {
+            font-weight: 600;
+            color: #495057;
+        }
+        .member-role {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .remove-member {
+            color: #dc3545;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .remove-member:hover {
+            background: rgba(220, 53, 69, 0.1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Include Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-2">
+                            <i class="fas fa-users me-3"></i>Create New Team
+                        </h1>
+                        <p class="mb-0 opacity-75">Build a new team to collaborate and achieve goals together</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex align-items-center justify-content-end">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span>Step 1 of 2</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step active">1</div>
+            <div class="step">2</div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="form-container">
+            <div class="card form-card">
+                <div class="form-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Team Information
+                    </h4>
+                    <p class="text-muted mb-0 mt-2">Please provide details about the new team</p>
+                </div>
+                
+                <div class="form-body">
+                    <form th:action="@{/teams/create}" th:object="${team}" method="post" id="teamForm">
+                        <!-- Basic Information Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Basic Information
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">
+                                            Team Name <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="name" th:field="*{name}" required>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Choose a descriptive name for the team
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="department" class="form-label">
+                                            Department <span class="text-danger">*</span>
+                                        </label>
+                                        <select class="form-select" id="department" name="departmentId" required>
+                                            <option value="">Select Department</option>
+                                            <option th:each="dept : ${departments}"
+                                                    th:value="${dept.id}"
+                                                    th:text="${dept.name}"></option>
+                                        </select>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Select the department this team belongs to
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    Description
+                                </label>
+                                <textarea class="form-control" id="description" th:field="*{description}" rows="4" maxlength="500"></textarea>
+                                <div class="character-count">
+                                    <span id="charCount">0</span> / 500 characters
+                                </div>
+                                <div class="help-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Describe the team's purpose and main responsibilities
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Team Leadership Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-user-tie"></i>
+                                Team Leadership
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="teamLead" class="form-label">
+                                            Team Lead
+                                        </label>
+                                        <select class="form-select" id="teamLead">
+                                            <option value="">Select Team Lead</option>
+                                            <!-- Options will be populated dynamically -->
+                                            <option value="1">John Doe</option>
+                                            <option value="2">Jane Smith</option>
+                                        </select>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Assign a team lead to manage this team
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="teamType" class="form-label">
+                                            Team Type
+                                        </label>
+                                        <select class="form-select" id="teamType">
+                                            <option value="development">Development</option>
+                                            <option value="operations">Operations</option>
+                                            <option value="support">Support</option>
+                                            <option value="management">Management</option>
+                                            <option value="marketing">Marketing</option>
+                                            <option value="sales">Sales</option>
+                                        </select>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Select the type of work this team does
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Team Members Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-user-friends"></i>
+                                Initial Team Members
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="teamMembers" class="form-label">
+                                    Add Team Members
+                                </label>
+                                <select class="form-select" id="teamMembers" multiple>
+                                    <option value="">Select team members</option>
+                                    <!-- Options will be populated dynamically -->
+                                    <option value="1">John Doe (Developer)</option>
+                                    <option value="2">Jane Smith (Designer)</option>
+                                    <option value="3">Mike Johnson (Tester)</option>
+                                </select>
+                                <div class="help-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Select initial team members (you can add more later)
+                                </div>
+                            </div>
+
+                            <div id="selectedMembers">
+                                <!-- Selected members will be displayed here -->
+                                <div class="member-preview">
+                                    <div class="member-avatar">JD</div>
+                                    <div class="member-info">
+                                        <div class="member-name">John Doe</div>
+                                        <div class="member-role">Senior Developer</div>
+                                    </div>
+                                    <div class="remove-member">
+                                        <i class="fas fa-times"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Settings Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-cog"></i>
+                                Additional Settings
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="teamEmail" class="form-label">
+                                            Team Email
+                                        </label>
+                                        <input type="email" class="form-control" id="teamEmail" placeholder="team@company.com">
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Official email address for team communications
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="teamSlack" class="form-label">
+                                            Slack Channel
+                                        </label>
+                                        <input type="text" class="form-control" id="teamSlack" placeholder="#team-channel">
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Slack channel for team discussions
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="maxMembers" class="form-label">
+                                            Maximum Team Size
+                                        </label>
+                                        <input type="number" class="form-control" id="maxMembers" placeholder="10" min="1" max="50">
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Set maximum number of members for this team
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="teamStatus" class="form-label">
+                                            Initial Status
+                                        </label>
+                                        <select class="form-select" id="teamStatus">
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                            <option value="forming">Forming</option>
+                                        </select>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Set the initial status of this team
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a th:href="@{/teams}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary me-2" onclick="saveAsDraft()">
+                                    <i class="fas fa-save me-2"></i>Save as Draft
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check me-2"></i>Create Team
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Character counter for description
+        document.getElementById('description').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.getElementById('charCount').textContent = charCount;
+            
+            if (charCount > 450) {
+                document.getElementById('charCount').style.color = '#dc3545';
+            } else if (charCount > 400) {
+                document.getElementById('charCount').style.color = '#ffc107';
+            } else {
+                document.getElementById('charCount').style.color = '#6c757d';
+            }
+        });
+
+        // Team member selection
+        document.getElementById('teamMembers').addEventListener('change', function() {
+            const selectedOptions = this.selectedOptions;
+            const selectedMembers = document.getElementById('selectedMembers');
+            
+            // Clear existing members
+            selectedMembers.innerHTML = '';
+            
+            // Add selected members
+            Array.from(selectedOptions).forEach(option => {
+                const memberPreview = document.createElement('div');
+                memberPreview.className = 'member-preview';
+                memberPreview.innerHTML = `
+                    <div class="member-avatar">${option.text.substring(0, 2).toUpperCase()}</div>
+                    <div class="member-info">
+                        <div class="member-name">${option.text}</div>
+                        <div class="member-role">Team Member</div>
+                    </div>
+                    <div class="remove-member" onclick="removeMember(this)">
+                        <i class="fas fa-times"></i>
+                    </div>
+                `;
+                selectedMembers.appendChild(memberPreview);
+            });
+        });
+
+        // Remove member function
+        function removeMember(element) {
+            element.parentElement.remove();
+        }
+
+        // Form validation
+        document.getElementById('teamForm').addEventListener('submit', function(e) {
+            const name = document.getElementById('name').value.trim();
+            const department = document.getElementById('department').value;
+            
+            if (!name) {
+                e.preventDefault();
+                alert('Please enter a team name');
+                return false;
+            }
+            
+            if (name.length < 2) {
+                e.preventDefault();
+                alert('Team name must be at least 2 characters long');
+                return false;
+            }
+            
+            if (!department) {
+                e.preventDefault();
+                alert('Please select a department');
+                return false;
+            }
+            
+            return true;
+        });
+
+        // Save as draft function
+        function saveAsDraft() {
+            // Implement draft saving logic
+            const formData = new FormData(document.getElementById('teamForm'));
+            const data = Object.fromEntries(formData);
+            
+            // Save to localStorage or send to server as draft
+            localStorage.setItem('teamDraft', JSON.stringify(data));
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-info alert-dismissible fade show';
+            alert.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                Team draft saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.form-container').insertBefore(alert, document.querySelector('.form-card'));
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // Load draft on page load
+        window.addEventListener('load', function() {
+            const draft = localStorage.getItem('teamDraft');
+            if (draft) {
+                const data = JSON.parse(draft);
+                
+                // Populate form fields with draft data
+                if (data.name) document.getElementById('name').value = data.name;
+                if (data.description) document.getElementById('description').value = data.description;
+                if (data.department) document.getElementById('department').value = data.department;
+                // ... populate other fields
+                
+                // Update character count
+                const desc = document.getElementById('description');
+                document.getElementById('charCount').textContent = desc.value.length;
+            }
+        });
+
+        // Auto-save functionality
+        let autoSaveTimer;
+        document.getElementById('teamForm').addEventListener('input', function() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                saveAsDraft();
+                console.log('Auto-saved draft');
+            }, 30000); // Auto-save after 30 seconds of inactivity
+        });
+    </script>
+</body>
+</html>

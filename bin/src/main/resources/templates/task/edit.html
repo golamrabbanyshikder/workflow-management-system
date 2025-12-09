@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Task - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header}"></div>
+    
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Task</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Flash Messages -->
+                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <span th:text="${error}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        
+                        <form th:action="@{/tasks/edit/{id}(id=${task.id})}" th:object="${task}" method="post">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="title" class="form-label">Task Title *</label>
+                                        <input type="text" class="form-control" id="title" th:field="*{title}" required>
+                                        <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="workflow" class="form-label">Workflow *</label>
+                                        <select class="form-select" id="workflow" th:field="*{workflow.id}" required>
+                                            <option value="">Select Workflow</option>
+                                            <option th:each="workflow : ${workflows}" 
+                                                    th:value="${workflow.id}" 
+                                                    th:text="${workflow.name}"
+                                                    th:selected="${task.workflow != null and task.workflow.id == workflow.id}"></option>
+                                        </select>
+                                        <div class="invalid-feedback" th:if="${#fields.hasErrors('workflow')}" th:errors="*{workflow}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" th:field="*{description}" rows="4"></textarea>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select class="form-select" id="status" th:field="*{status}">
+                                            <option th:each="status : ${statusOptions}" 
+                                                    th:value="${status}" 
+                                                    th:text="${status.displayName}"
+                                                    th:selected="${task.status == status}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="priority" class="form-label">Priority</label>
+                                        <select class="form-select" id="priority" th:field="*{priority}">
+                                            <option th:each="priority : ${priorityOptions}" 
+                                                    th:value="${priority}" 
+                                                    th:text="${priority.displayName}"
+                                                    th:selected="${task.priority == priority}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="assignedTo" class="form-label">Assigned To</label>
+                                        <select class="form-select" id="assignedTo" th:field="*{assignedTo.id}">
+                                            <option value="">Select User</option>
+                                            <!-- This would need to be populated with actual users -->
+                                            <option value="1">User 1</option>
+                                            <option value="2">User 2</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="dueDate" class="form-label">Due Date *</label>
+                                        <input type="datetime-local" class="form-control" id="dueDate" th:field="*{dueDate}" required>
+                                        <div class="invalid-feedback" th:if="${#fields.hasErrors('dueDate')}" th:errors="*{dueDate}"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="estimatedHours" class="form-label">Estimated Hours</label>
+                                        <input type="number" class="form-control" id="estimatedHours" th:field="*{estimatedHours}" min="0">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="actualHours" class="form-label">Actual Hours</label>
+                                        <input type="number" class="form-control" id="actualHours" th:field="*{actualHours}" min="0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Task Metadata (Read-only) -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Created By</label>
+                                        <input type="text" class="form-control" th:value="${task.createdBy.username}" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Created At</label>
+                                        <input type="text" class="form-control" th:value="${#temporals.format(task.createdAt, 'yyyy-MM-dd HH:mm')}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <a href="/tasks" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                                </a>
+                                <div>
+                                    <a th:href="@{/tasks/view/{id}(id=${task.id})}" class="btn btn-outline-info me-2">
+                                        <i class="fas fa-eye me-2"></i>View
+                                    </a>
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-save me-2"></i>Update Task
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <form th:action="@{/tasks/assign/{id}(id=${task.id})}" method="post" class="d-flex">
+                                    <select name="assignedToId" class="form-select me-2" required>
+                                        <option value="">Assign to...</option>
+                                        <option value="1">User 1</option>
+                                        <option value="2">User 2</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary">Assign</button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <form th:action="@{/tasks/status/{id}(id=${task.id})}" method="post" class="d-flex">
+                                    <select name="status" class="form-select me-2" required>
+                                        <option value="">Change Status...</option>
+                                        <option th:each="status : ${statusOptions}" th:value="${status}" th:text="${status.displayName}"></option>
+                                    </select>
+                                    <button type="submit" class="btn btn-success">Update</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <form th:action="@{/tasks/complete/{id}(id=${task.id})}" method="post" class="d-flex">
+                                    <input type="number" name="actualHours" class="form-control me-2" placeholder="Actual hours" min="0">
+                                    <button type="submit" class="btn btn-success">Complete Task</button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <form th:action="@{/tasks/delete/{id}(id=${task.id})}" method="post" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this task?')">
+                                        <i class="fas fa-trash me-2"></i>Delete Task
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

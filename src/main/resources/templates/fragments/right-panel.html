@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Right Panel</title>
+</head>
+<body>
+
+<!-- Right Panel Fragment -->
+<div th:fragment="rightPanel">
+    <!-- Toggle Button -->
+    <button id="rightPanelToggle" class="btn btn-primary right-panel-toggle">
+        <i class="fas fa-cog"></i>
+    </button>
+    
+    <!-- Collapsible Right Panel -->
+    <div id="rightPanel" class="right-panel">
+        <div class="right-panel-header">
+            <h5 class="mb-0">Quick Actions</h5>
+            <button id="closePanel" class="btn btn-sm btn-outline-light">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="right-panel-content">
+            <!-- Role Management Section -->
+            <div class="panel-section" sec:authorize="hasAnyRole('ROLE_CEO', 'ROLE_DEPARTMENT_HEAD')">
+                <div class="section-header" data-bs-toggle="collapse" data-bs-target="#roleMenu">
+                    <i class="fas fa-user-tag me-2"></i>
+                    <span>Role Management</span>
+                    <i class="fas fa-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse show" id="roleMenu">
+                    <div class="section-content">
+                        <a href="/admin/roles/create" class="menu-item">
+                            <i class="fas fa-plus-circle me-2"></i>Create Role
+                        </a>
+                        <a href="/users/assign-roles" class="menu-item">
+                            <i class="fas fa-user-plus me-2"></i>Assign Role to User
+                        </a>
+                        <a href="/admin/roles" class="menu-item">
+                            <i class="fas fa-list me-2"></i>View All Roles
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Team Management Section -->
+            <div class="panel-section" sec:authorize="hasAnyRole('ROLE_CEO', 'ROLE_DEPARTMENT_HEAD', 'ROLE_TEAM_LEAD')">
+                <div class="section-header" data-bs-toggle="collapse" data-bs-target="#teamMenu">
+                    <i class="fas fa-users me-2"></i>
+                    <span>Team Management</span>
+                    <i class="fas fa-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse show" id="teamMenu">
+                    <div class="section-content">
+                        <a href="/admin/teams/create" class="menu-item">
+                            <i class="fas fa-plus-circle me-2"></i>Create Team
+                        </a>
+                        <a href="/teams/assign-users" class="menu-item">
+                            <i class="fas fa-user-plus me-2"></i>Assign User to Team
+                        </a>
+                        <a href="/admin/teams" class="menu-item">
+                            <i class="fas fa-list me-2"></i>View All Teams
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Management Section -->
+            <div class="panel-section" sec:authorize="hasAnyRole('ROLE_CEO', 'ROLE_DEPARTMENT_HEAD')">
+                <div class="section-header" data-bs-toggle="collapse" data-bs-target="#userMenu">
+                    <i class="fas fa-user-cog me-2"></i>
+                    <span>User Management</span>
+                    <i class="fas fa-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse" id="userMenu">
+                    <div class="section-content">
+                        <a href="/register" class="menu-item">
+                            <i class="fas fa-user-plus me-2"></i>Create User
+                        </a>
+                        <a href="/users" class="menu-item">
+                            <i class="fas fa-list me-2"></i>View All Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Department Management Section -->
+            <div class="panel-section" sec:authorize="hasRole('ROLE_CEO')">
+                <div class="section-header" data-bs-toggle="collapse" data-bs-target="#deptMenu">
+                    <i class="fas fa-building me-2"></i>
+                    <span>Department Management</span>
+                    <i class="fas fa-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse" id="deptMenu">
+                    <div class="section-content">
+                        <a href="/departments/create" class="menu-item">
+                            <i class="fas fa-plus-circle me-2"></i>Create Department
+                        </a>
+                        <a href="/departments" class="menu-item">
+                            <i class="fas fa-list me-2"></i>View All Departments
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Links Section -->
+            <div class="panel-section">
+                <div class="section-header" data-bs-toggle="collapse" data-bs-target="#quickMenu">
+                    <i class="fas fa-bolt me-2"></i>
+                    <span>Quick Links</span>
+                    <i class="fas fa-chevron-down ms-auto"></i>
+                </div>
+                <div class="collapse" id="quickMenu">
+                    <div class="section-content">
+                        <a href="/dashboard" class="menu-item">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="/tasks/my-tasks" class="menu-item">
+                            <i class="fas fa-tasks me-2"></i>My Tasks
+                        </a>
+                        <a href="/reports" class="menu-item">
+                            <i class="fas fa-chart-bar me-2"></i>Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

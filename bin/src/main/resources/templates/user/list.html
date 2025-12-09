@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header}"></div>
+    
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0"><i class="fas fa-users me-2"></i>User Management</h4>
+                            <a href="/register" class="btn btn-light">
+                                <i class="fas fa-plus me-1"></i>Create New User
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Roles</th>
+                                        <th>Team</th>
+                                        <th>Enabled</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="user : ${users}">
+                                        <td th:text="${user.id}">1</td>
+                                        <td th:text="${user.firstName + ' ' + user.lastName}">John Doe</td>
+                                        <td th:text="${user.username}">johndoe</td>
+                                        <td th:text="${user.email}">john@example.com</td>
+                                        <td>
+                                            <span th:each="userRole : ${user.userRoles}" 
+                                                  class="badge bg-info me-1">
+                                                <span th:text="${userRole.role.name}">ROLE</span>
+                                            </span>
+                                            <span th:if="${user.userRoles.empty}" class="text-muted">No roles</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${user.team != null}" 
+                                                  th:text="${user.team.name}" 
+                                                  class="badge bg-primary">Team Name</span>
+                                            <span th:if="${user.team == null}" class="text-muted">No team</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${user.enabled}" class="badge bg-success">Active</span>
+                                            <span th:unless="${user.enabled}" class="badge bg-danger">Inactive</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="/dashboard" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/app.js}"></script>
+</body>
+</html>

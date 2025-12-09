@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Users to Teams - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header}"></div>
+    
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="fas fa-users me-2"></i>Assign Users to Teams</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Success/Error Messages -->
+                        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <span th:text="${success}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <span th:text="${error}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        
+                        <!-- Assign User to Team Form -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Assign User to Team</h5>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/teams/assign-users}" method="post">
+                                    <div class="row">
+                                        <div class="col-md-5">
+                                            <label for="userId" class="form-label">Select User</label>
+                                            <select id="userId" name="userId" class="form-select" required>
+                                                <option value="">Choose User</option>
+                                                <option th:each="user : ${users}" 
+                                                        th:value="${user.id}" 
+                                                        th:text="${user.firstName + ' ' + user.lastName + ' (' + user.username + ')'}">
+                                                    User Name
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label for="teamId" class="form-label">Select Team</label>
+                                            <select id="teamId" name="teamId" class="form-select" required>
+                                                <option value="">Choose Team</option>
+                                                <option th:each="team : ${teams}" 
+                                                        th:value="${team.id}" 
+                                                        th:text="${team.name + (team.department != null ? ' - ' + team.department.name : '')}">
+                                                    Team Name
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="fas fa-plus me-1"></i>Assign
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- Current Team Assignments -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Current Team Assignments</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Email</th>
+                                                <th>Current Team</th>
+                                                <th>Department</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="user : ${users}">
+                                                <td th:text="${user.firstName + ' ' + user.lastName}">User Name</td>
+                                                <td th:text="${user.email}">user@example.com</td>
+                                                <td>
+                                                    <span th:if="${user.team != null}" class="badge bg-primary">
+                                                        <span th:text="${user.team.name}">Team Name</span>
+                                                    </span>
+                                                    <span th:if="${user.team == null}" class="text-muted">Not assigned</span>
+                                                </td>
+                                                <td>
+                                                    <span th:if="${user.team != null and user.team.department != null}" 
+                                                          th:text="${user.team.department.name}" 
+                                                          class="badge bg-secondary">
+                                                        Department
+                                                    </span>
+                                                    <span th:if="${user.team == null}" class="text-muted">-</span>
+                                                </td>
+                                                <td>
+                                                    <div th:if="${user.team != null}" class="btn-group" role="group">
+                                                        <a th:href="@{/teams/assign-users}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-exchange-alt me-1"></i>Reassign
+                                                        </a>
+                                                        <a th:href="@{/teams/remove-user/{userId}(userId=${user.id})}" 
+                                                           class="btn btn-sm btn-outline-danger"
+                                                           onclick="return confirm('Are you sure you want to remove this user from the team?')">
+                                                            <i class="fas fa-times me-1"></i>Remove
+                                                        </a>
+                                                    </div>
+                                                    <div th:if="${user.team == null}">
+                                                        <a th:href="@{/teams/assign-users}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-plus me-1"></i>Assign to Team
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="/admin/teams" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Teams
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/app.js}"></script>
+</body>
+</html>

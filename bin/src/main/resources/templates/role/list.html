@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Roles - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        .role-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+        }
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .role-header {
+            background: linear-gradient(135deg, #6f42c1 0%, #a855f7 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+        .role-icon {
+            font-size: 2.5rem;
+            opacity: 0.9;
+        }
+        .role-body {
+            padding: 20px;
+        }
+        .permissions-list {
+            margin: 15px 0;
+        }
+        .permission-badge {
+            display: inline-block;
+            background: rgba(111, 66, 193, 0.1);
+            color: #6f42c1;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .action-buttons .btn {
+            flex: 1;
+            border-radius: 8px;
+        }
+        .search-bar {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        .page-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-radius: 15px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .role-type {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .role-type.admin {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+        .role-type.user {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+        .role-type.system {
+            background: rgba(108, 117, 125, 0.2);
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Include Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-user-tag me-3 text-primary"></i>Role Management
+                    </h1>
+                    <p class="text-muted mb-0">Define and manage user roles and permissions</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+                            <i class="fas fa-plus-circle me-2"></i>Create Role
+                        </button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="window.location.href='/users/assign-roles'">
+                            <i class="fas fa-user-plus me-2"></i>Assign Roles
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-bar">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search roles...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="roleTypeFilter">
+                        <option value="">All Role Types</option>
+                        <option value="admin">Admin Roles</option>
+                        <option value="user">User Roles</option>
+                        <option value="system">System Roles</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="sortBy">
+                        <option value="name">Sort by Name</option>
+                        <option value="userCount">Sort by Users</option>
+                        <option value="permissions">Sort by Permissions</option>
+                        <option value="createdAt">Sort by Date Created</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-secondary active" id="gridView">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="listView">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Roles Grid -->
+        <div id="rolesGrid" class="row g-4">
+            <div class="col-md-6 col-lg-4" th:each="role : ${roles}">
+                <div class="card role-card h-100">
+                    <div class="role-header">
+                        <div class="role-type" 
+                             th:classappend="${#strings.contains(role.name, 'ADMIN') ? 'admin' : 
+                                           (#strings.contains(role.name, 'CEO') ? 'admin' : 
+                                           (#strings.contains(role.name, 'DEPARTMENT_HEAD') ? 'admin' : 
+                                           (#strings.contains(role.name, 'TEAM_LEAD') ? 'user' : 'user'))}">
+                            <span th:if="${#strings.contains(role.name, 'ADMIN')}">ADMIN</span>
+                            <span th:if="${#strings.contains(role.name, 'CEO')}">ADMIN</span>
+                            <span th:if="${#strings.contains(role.name, 'DEPARTMENT_HEAD')}">ADMIN</span>
+                            <span th:if="${#strings.contains(role.name, 'TEAM_LEAD')}">LEAD</span>
+                            <span th:if="${#strings.contains(role.name, 'EMPLOYEE')}">USER</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <i class="fas fa-user-tag role-icon"></i>
+                                <h5 class="mt-2 mb-1" th:text="${role.name}">Role Name</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="role-body">
+                        <p class="text-muted mb-3" th:text="${role.description ?: 'No description available'}">
+                            Role description goes here...
+                        </p>
+                        
+                        <div class="permissions-list">
+                            <div class="permission-badge">READ</div>
+                            <div class="permission-badge">WRITE</div>
+                            <div class="permission-badge">DELETE</div>
+                            <div class="permission-badge" th:if="${#strings.contains(role.name, 'ADMIN')}">MANAGE</div>
+                            <div class="permission-badge" th:if="${#strings.contains(role.name, 'TEAM_LEAD')}">ASSIGN</div>
+                        </div>
+                        
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <div class="stat-value" th:text="${role.userCount ?: 0}">0</div>
+                                <div class="stat-label">Users</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" th:text="${role.permissionCount ?: 5}">5</div>
+                                <div class="stat-label">Permissions</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" th:text="${role.active ? 'Yes' : 'No'}">Yes</div>
+                                <div class="stat-label">Active</div>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-outline-primary btn-sm" th:data-id="${role.id}" onclick="viewRole(this.getAttribute('data-id'))">
+                                <i class="fas fa-eye me-1"></i>View
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" th:data-id="${role.id}" onclick="editRole(this.getAttribute('data-id'))">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" th:data-id="${role.id}" th:data-name="${role.name}" onclick="deleteRole(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div th:if="${#lists.isEmpty(roles)}" class="empty-state">
+            <i class="fas fa-user-tag"></i>
+            <h3>No Roles Found</h3>
+            <p class="text-muted">Start by creating your first role to define user permissions.</p>
+            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+                <i class="fas fa-plus-circle me-2"></i>Create First Role
+            </button>
+        </div>
+
+        <!-- Table View (Hidden by default) -->
+        <div id="rolesTable" class="card" style="display: none;">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th><i class="fas fa-hashtag me-1"></i>ID</th>
+                                <th><i class="fas fa-user-tag me-1"></i>Role Name</th>
+                                <th><i class="fas fa-shield-alt me-1"></i>Type</th>
+                                <th><i class="fas fa-users me-1"></i>Users</th>
+                                <th><i class="fas fa-key me-1"></i>Permissions</th>
+                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="role : ${roles}">
+                                <td th:text="${role.id}"></td>
+                                <td>
+                                    <strong th:text="${role.name}"></strong>
+                                    <div class="role-type d-inline-block ms-2" 
+                                         th:classappend="${#strings.contains(role.name, 'ADMIN') ? 'admin' : 
+                                                       (#strings.contains(role.name, 'CEO') ? 'admin' : 
+                                                       (#strings.contains(role.name, 'DEPARTMENT_HEAD') ? 'admin' : 
+                                                       (#strings.contains(role.name, 'TEAM_LEAD') ? 'user' : 'user'))}">
+                                        <span th:if="${#strings.contains(role.name, 'ADMIN')}">ADMIN</span>
+                                        <span th:if="${#strings.contains(role.name, 'CEO')}">ADMIN</span>
+                                        <span th:if="${#strings.contains(role.name, 'DEPARTMENT_HEAD')}">ADMIN</span>
+                                        <span th:if="${#strings.contains(role.name, 'TEAM_LEAD')}">LEAD</span>
+                                        <span th:if="${#strings.contains(role.name, 'EMPLOYEE')}">USER</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span th:if="${#strings.contains(role.name, 'ADMIN')}" class="badge bg-danger">Admin</span>
+                                    <span th:if="${#strings.contains(role.name, 'CEO')}" class="badge bg-danger">Admin</span>
+                                    <span th:if="${#strings.contains(role.name, 'DEPARTMENT_HEAD')}" class="badge bg-danger">Admin</span>
+                                    <span th:if="${#strings.contains(role.name, 'TEAM_LEAD')}" class="badge bg-warning">Lead</span>
+                                    <span th:if="${#strings.contains(role.name, 'EMPLOYEE')}" class="badge bg-success">User</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary" th:text="${role.userCount ?: 0}">0</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info" th:text="${role.permissionCount ?: 5}">5</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary" th:data-id="${role.id}" onclick="viewRole(this.getAttribute('data-id'))">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" th:data-id="${role.id}" onclick="editRole(this.getAttribute('data-id'))">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" th:data-id="${role.id}" th:data-name="${role.name}" onclick="deleteRole(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Role Modal -->
+    <div class="modal fade" id="createRoleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-tag me-2"></i>Create New Role
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-info">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="fas fa-tag me-1"></i>Role Name
+                                    </label>
+                                    <input type="text" class="form-control" id="name" th:field="*{name}" required>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Use format: ROLE_NAME (e.g., ROLE_ADMIN, ROLE_USER)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="roleCategory" class="form-label">
+                                        <i class="fas fa-layer-group me-1"></i>Role Category
+                                    </label>
+                                    <select class="form-select" id="roleCategory">
+                                        <option value="user">User Role</option>
+                                        <option value="lead">Leadership Role</option>
+                                        <option value="admin">Administrative Role</option>
+                                        <option value="system">System Role</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left me-1"></i>Description
+                            </label>
+                            <textarea class="form-control" id="description" th:field="*{description}" rows="4" placeholder="Describe the role's purpose and responsibilities..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-key me-1"></i>Permissions
+                                    </label>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="permRead" checked>
+                                                <label class="form-check-label" for="permRead">
+                                                    Read Access
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="permWrite" checked>
+                                                <label class="form-check-label" for="permWrite">
+                                                    Write Access
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="permDelete">
+                                                <label class="form-check-label" for="permDelete">
+                                                    Delete Access
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="permManage">
+                                                <label class="form-check-label" for="permManage">
+                                                    Manage Users
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Create Role
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // View Toggle
+        document.getElementById('gridView').addEventListener('click', function() {
+            document.getElementById('rolesGrid').style.display = 'flex';
+            document.getElementById('rolesTable').style.display = 'none';
+            this.classList.add('active');
+            document.getElementById('listView').classList.remove('active');
+        });
+
+        document.getElementById('listView').addEventListener('click', function() {
+            document.getElementById('rolesGrid').style.display = 'none';
+            document.getElementById('rolesTable').style.display = 'block';
+            this.classList.add('active');
+            document.getElementById('gridView').classList.remove('active');
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.role-card');
+            
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.parentElement.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+
+        // Role type filter
+        document.getElementById('roleTypeFilter').addEventListener('change', function() {
+            const roleType = this.value;
+            const cards = document.querySelectorAll('.role-card');
+            
+            cards.forEach(card => {
+                if (!roleType) {
+                    card.parentElement.style.display = 'block';
+                } else {
+                    // Filter logic based on role type
+                    card.parentElement.style.display = 'block'; // Placeholder
+                }
+            });
+        });
+
+        // Role actions
+        function viewRole(id) {
+            window.location.href = '/roles/view/' + id;
+        }
+
+        function editRole(id) {
+            window.location.href = '/roles/edit/' + id;
+        }
+
+        function deleteRole(id, name) {
+            if (confirm(`Are you sure you want to delete the role "${name}"? This action cannot be undone and may affect user permissions.`)) {
+                window.location.href = '/roles/delete/' + id;
+            }
+        }
+
+        // Sort functionality
+        document.getElementById('sortBy').addEventListener('change', function() {
+            const sortBy = this.value;
+            const grid = document.getElementById('rolesGrid');
+            const cards = Array.from(grid.children);
+            
+            cards.sort((a, b) => {
+                // Implement sorting logic based on selected option
+                return 0; // Placeholder
+            });
+            
+            cards.forEach(card => grid.appendChild(card));
+        });
+    </script>
+</body>
+</html>

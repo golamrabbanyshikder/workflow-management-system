@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Departments - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        .department-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .department-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .department-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+        .department-icon {
+            font-size: 2.5rem;
+            opacity: 0.9;
+        }
+        .department-body {
+            padding: 20px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .action-buttons .btn {
+            flex: 1;
+            border-radius: 8px;
+        }
+        .search-bar {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        .page-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-radius: 15px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Include Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-building me-3 text-primary"></i>Department Management
+                    </h1>
+                    <p class="text-muted mb-0">Manage and organize your company departments</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
+                        <i class="fas fa-plus-circle me-2"></i>Create Department
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-bar">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search departments...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="sortBy">
+                        <option value="name">Sort by Name</option>
+                        <option value="createdAt">Sort by Date Created</option>
+                        <option value="teamCount">Sort by Team Count</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-secondary active" id="gridView">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="listView">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Departments Grid -->
+        <div id="departmentsGrid" class="row g-4">
+            <div class="col-md-6 col-lg-4" th:each="dept : ${departments}">
+                <div class="card department-card h-100">
+                    <div class="department-header">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <i class="fas fa-building department-icon"></i>
+                                <h5 class="mt-2 mb-1" th:text="${dept.name}">Department Name</h5>
+                            </div>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-users me-1"></i>
+                                <span th:text="${#lists.size(dept.teams)}">0</span> Teams
+                            </span>
+                        </div>
+                    </div>
+                    <div class="department-body">
+                        <p class="text-muted mb-3" th:text="${dept.description ?: 'No description available'}">
+                            Department description goes here...
+                        </p>
+                        
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <div class="stat-value" th:text="${#lists.size(dept.teams) * 3}">0</div>
+                                <div class="stat-label">Employees</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" th:text="${#lists.size(dept.teams)}">0</div>
+                                <div class="stat-label">Active Projects</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" th:text="${#lists.size(dept.teams) * 5}">0</div>
+                                <div class="stat-label">Tasks Done</div>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-outline-primary btn-sm" th:data-id="${dept.id}" onclick="viewDepartment(this.getAttribute('data-id'))">
+                                <i class="fas fa-eye me-1"></i>View
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" th:data-id="${dept.id}" onclick="editDepartment(this.getAttribute('data-id'))">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" th:data-id="${dept.id}" th:data-name="${dept.name}" onclick="deleteDepartment(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div th:if="${#lists.isEmpty(departments)}" class="empty-state">
+            <i class="fas fa-building"></i>
+            <h3>No Departments Found</h3>
+            <p class="text-muted">Start by creating your first department to organize your teams and workflows.</p>
+            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
+                <i class="fas fa-plus-circle me-2"></i>Create First Department
+            </button>
+        </div>
+
+        <!-- Table View (Hidden by default) -->
+        <div id="departmentsTable" class="card" style="display: none;">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th><i class="fas fa-hashtag me-1"></i>ID</th>
+                                <th><i class="fas fa-building me-1"></i>Name</th>
+                                <th><i class="fas fa-align-left me-1"></i>Description</th>
+                                <th><i class="fas fa-users me-1"></i>Teams</th>
+                                <th><i class="fas fa-user-tie me-1"></i>Employees</th>
+                                <th><i class="fas fa-calendar me-1"></i>Created</th>
+                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="dept : ${departments}">
+                                <td th:text="${dept.id}"></td>
+                                <td>
+                                    <strong th:text="${dept.name}"></strong>
+                                </td>
+                                <td th:text="${dept.description ?: 'N/A'}"></td>
+                                <td>
+                                    <span class="badge bg-primary" th:text="${#lists.size(dept.teams)}">0</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success" th:text="${#lists.size(dept.teams) * 3}">0</span>
+                                </td>
+                                <td th:text="${#temporals.format(dept.createdAt, 'MMM dd, yyyy')}"></td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary" th:data-id="${dept.id}" onclick="viewDepartment(this.getAttribute('data-id'))">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" th:data-id="${dept.id}" onclick="editDepartment(this.getAttribute('data-id'))">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" th:data-id="${dept.id}" th:data-name="${dept.name}" onclick="deleteDepartment(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Department Modal -->
+    <div class="modal fade" id="createDepartmentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-building me-2"></i>Create New Department
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-center">
+                        <i class="fas fa-info-circle fa-3x text-primary mb-3"></i>
+                        <h5>Create New Department</h5>
+                        <p class="text-muted">Click the button below to go to the department creation page where you can fill in all the details.</p>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <a th:href="@{/admin/departments/create}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Go to Create Form
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // View Toggle
+        document.getElementById('gridView').addEventListener('click', function() {
+            document.getElementById('departmentsGrid').style.display = 'flex';
+            document.getElementById('departmentsTable').style.display = 'none';
+            this.classList.add('active');
+            document.getElementById('listView').classList.remove('active');
+        });
+
+        document.getElementById('listView').addEventListener('click', function() {
+            document.getElementById('departmentsGrid').style.display = 'none';
+            document.getElementById('departmentsTable').style.display = 'block';
+            this.classList.add('active');
+            document.getElementById('gridView').classList.remove('active');
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.department-card');
+            
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.parentElement.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+
+        // Department actions
+        function viewDepartment(id) {
+            window.location.href = '/admin/departments/view/' + id;
+        }
+
+        function editDepartment(id) {
+            window.location.href = '/admin/departments/edit/' + id;
+        }
+
+        function deleteDepartment(id, name) {
+            if (confirm(`Are you sure you want to delete the department "${name}"? This action cannot be undone.`)) {
+                window.location.href = '/admin/departments/delete/' + id;
+            }
+        }
+
+        // Sort functionality
+        document.getElementById('sortBy').addEventListener('change', function() {
+            const sortBy = this.value;
+            const grid = document.getElementById('departmentsGrid');
+            const cards = Array.from(grid.children);
+            
+            cards.sort((a, b) => {
+                // Implement sorting logic based on the selected option
+                return 0; // Placeholder
+            });
+            
+            cards.forEach(card => grid.appendChild(card));
+        });
+    </script>
+</body>
+</html>
