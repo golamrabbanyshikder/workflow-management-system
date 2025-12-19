@@ -1,38 +1,635 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Edit Role - Workflow System</title>
+    <title>Edit Role - Workflow Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        .role-header {
+            background: linear-gradient(135deg, #6f42c1 0%, #a855f7 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .form-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #495057;
+            border-bottom: 2px solid #6f42c1;
+            padding-bottom: 10px;
+        }
+        .permission-group {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+        }
+        .permission-group h6 {
+            color: #6f42c1;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .permission-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            transition: background 0.2s;
+        }
+        .permission-item:hover {
+            background: #e9ecef;
+        }
+        .permission-item label {
+            margin-left: 10px;
+            cursor: pointer;
+            flex-grow: 1;
+        }
+        .current-permissions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .permission-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(111, 66, 193, 0.1);
+            color: #6f42c1;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid rgba(111, 66, 193, 0.2);
+        }
+        .permission-badge .remove-btn {
+            margin-left: 8px;
+            cursor: pointer;
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .permission-badge .remove-btn:hover {
+            color: #c82333;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .character-count {
+            font-size: 0.85rem;
+            color: #6c757d;
+            text-align: right;
+            margin-top: 5px;
+        }
+        .preview-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .role-preview {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            background: white;
+            border: 2px dashed #6f42c1;
+        }
+        .role-preview h4 {
+            color: #6f42c1;
+            margin-bottom: 10px;
+        }
+        .status-toggle {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .form-check-input:checked {
+            background-color: #6f42c1;
+            border-color: #6f42c1;
+        }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .quick-action-btn {
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            background: white;
+            text-align: center;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #495057;
+        }
+        .quick-action-btn:hover {
+            background: #6f42c1;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+        }
+        .quick-action-btn i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+    </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand" href="#">Workflow System</a>
-        <div class="navbar-nav ms-auto">
-            <a class="nav-link" th:href="@{/dashboard}">Dashboard</a>
-            <a class="nav-link" th:href="@{/logout}">Logout</a>
+    <!-- Include Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="container mt-4">
+        <!-- Flash Messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    </div>
-</nav>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
 
-<div class="container mt-4">
-    <h2>Edit Role</h2>
-
-    <!-- Flash Messages -->
-    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
-
-    <div class="card">
-        <div class="card-body">
-            <form th:action="@{/admin/roles/update/{id}(id=${role.id})}" th:object="${role}" method="post">
-                <div class="mb-3">
-                    <label for="name" class="form-label">Role Name</label>
-                    <input type="text" class="form-control" id="name" th:field="*{name}" required>
+        <!-- Role Header -->
+        <div class="role-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-user-tag me-3"></i>Edit Role
+                    </h1>
+                    <p class="mb-0" th:text="${role.name ?: 'Unknown Role'}">Role Name</p>
                 </div>
-                <button type="submit" class="btn btn-primary">Update Role</button>
-                <a th:href="@{/admin/roles}" class="btn btn-secondary">Cancel</a>
-            </form>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light" onclick="window.history.back()">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Roles
+                    </button>
+                </div>
+            </div>
         </div>
+
+        <form th:action="@{/admin/roles/update/{id}(id=${role.id})}" th:object="${role}" method="post" id="roleEditForm">
+            <div class="row">
+                <!-- Left Column - Basic Information -->
+                <div class="col-lg-8">
+                    <!-- Basic Information -->
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-info-circle me-2"></i>Basic Information
+                        </h3>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="fas fa-tag me-1"></i>Role Name
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="name" 
+                                           th:field="*{name}" 
+                                           required
+                                           maxlength="50"
+                                           oninput="updateCharacterCount('name', 50)">
+                                    <div class="character-count">
+                                        <span id="name-count">0</span>/50 characters
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="roleLevel" class="form-label">
+                                        <i class="fas fa-layer-group me-1"></i>Role Level
+                                    </label>
+                                    <input type="number"
+                                           class="form-control"
+                                           id="roleLevel"
+                                           th:field="*{roleLevel}"
+                                           min="1"
+                                           max="10">
+                                    <div class="form-text">
+                                        Higher numbers indicate higher privilege levels
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left me-1"></i>Description
+                            </label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      th:field="*{description}" 
+                                      rows="4" 
+                                      maxlength="500"
+                                      placeholder="Describe the role's purpose and responsibilities..."
+                                      oninput="updateCharacterCount('description', 500)"></textarea>
+                            <div class="character-count">
+                                <span id="description-count">0</span>/500 characters
+                            </div>
+                        </div>
+
+                        <!-- Status Toggle -->
+                        <div class="status-toggle">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="active" 
+                                       th:field="*{active}">
+                                <label class="form-check-label" for="active">
+                                    <strong>Role Status</strong>
+                                </label>
+                            </div>
+                            <span th:text="${role.active != null and role.active ? 'Active' : 'Inactive'}" 
+                                  id="status-text">Active</span>
+                        </div>
+                    </div>
+
+                    <!-- Permissions Management -->
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-key me-2"></i>Permissions Management
+                        </h3>
+
+                        <!-- Current Permissions -->
+                        <div class="mb-4">
+                            <h5>Current Permissions</h5>
+                            <div class="current-permissions" id="currentPermissions">
+                                <div th:if="${role.permissions != null and not #lists.isEmpty(role.permissions)}" 
+                                     th:each="permission : ${role.permissions}" 
+                                     class="permission-badge">
+                                    <span th:text="${permission}">PERMISSION</span>
+                                    <span class="remove-btn" 
+                                          th:data-permission="${permission}"
+                                          onclick="removePermission(this.getAttribute('data-permission'))">×</span>
+                                </div>
+                                <div th:if="${role.permissions == null or #lists.isEmpty(role.permissions)}" 
+                                     class="text-muted">
+                                    No permissions assigned to this role
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Available Permissions -->
+                        <div class="mb-4">
+                            <h5>Add Permissions</h5>
+                            <div class="permission-group">
+                                <h6><i class="fas fa-users me-2"></i>User Management</h6>
+                                <div th:each="perm : ${availablePermissions}" 
+                                     th:if="${#strings.startsWith(perm, 'USER_')}">
+                                    <div class="permission-item">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               th:id="${'perm_' + perm}" 
+                                               th:value="${perm}"
+                                               onchange="togglePermission(this.value, this.checked)">
+                                        <label th:for="${'perm_' + perm}" th:text="${perm}">PERMISSION</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="permission-group">
+                                <h6><i class="fas fa-user-tag me-2"></i>Role Management</h6>
+                                <div th:each="perm : ${availablePermissions}" 
+                                     th:if="${#strings.startsWith(perm, 'ROLE_')}">
+                                    <div class="permission-item">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               th:id="${'perm_' + perm}" 
+                                               th:value="${perm}"
+                                               onchange="togglePermission(this.value, this.checked)">
+                                        <label th:for="${'perm_' + perm}" th:text="${perm}">PERMISSION</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="permission-group">
+                                <h6><i class="fas fa-building me-2"></i>Department Management</h6>
+                                <div th:each="perm : ${availablePermissions}" 
+                                     th:if="${#strings.startsWith(perm, 'DEPARTMENT_')}">
+                                    <div class="permission-item">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               th:id="${'perm_' + perm}" 
+                                               th:value="${perm}"
+                                               onchange="togglePermission(this.value, this.checked)">
+                                        <label th:for="${'perm_' + perm}" th:text="${perm}">PERMISSION</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="permission-group">
+                                <h6><i class="fas fa-users-cog me-2"></i>Team Management</h6>
+                                <div th:each="perm : ${availablePermissions}" 
+                                     th:if="${#strings.startsWith(perm, 'TEAM_')}">
+                                    <div class="permission-item">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               th:id="${'perm_' + perm}" 
+                                               th:value="${perm}"
+                                               onchange="togglePermission(this.value, this.checked)">
+                                        <label th:for="${'perm_' + perm}" th:text="${perm}">PERMISSION</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="permission-group">
+                                <h6><i class="fas fa-project-diagram me-2"></i>Workflow Management</h6>
+                                <div th:each="perm : ${availablePermissions}" 
+                                     th:if="${#strings.startsWith(perm, 'WORKFLOW_')}">
+                                    <div class="permission-item">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               th:id="${'perm_' + perm}" 
+                                               th:value="${perm}"
+                                               onchange="togglePermission(this.value, this.checked)">
+                                        <label th:for="${'perm_' + perm}" th:text="${perm}">PERMISSION</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="permission-group">
+                                <h6><i class="fas fa-tasks me-2"></i>Task Management</h6>
+                                <div th:each="perm : ${availablePermissions}" 
+                                     th:if="${#strings.startsWith(perm, 'TASK_')}">
+                                    <div class="permission-item">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               th:id="${'perm_' + perm}" 
+                                               th:value="${perm}"
+                                               onchange="togglePermission(this.value, this.checked)">
+                                        <label th:for="${'perm_' + perm}" th:text="${perm}">PERMISSION</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="permission-group">
+                                <h6><i class="fas fa-chart-bar me-2"></i>Reports & System</h6>
+                                <div th:each="perm : ${availablePermissions}" 
+                                     th:if="${#strings.startsWith(perm, 'REPORT_') or #strings.startsWith(perm, 'SYSTEM_')}">
+                                    <div class="permission-item">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               th:id="${'perm_' + perm}" 
+                                               th:value="${perm}"
+                                               onchange="togglePermission(this.value, this.checked)">
+                                        <label th:for="${'perm_' + perm}" th:text="${perm}">PERMISSION</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Preview & Quick Actions -->
+                <div class="col-lg-4">
+                    <!-- Role Preview -->
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-eye me-2"></i>Role Preview
+                        </h3>
+                        <div class="role-preview">
+                            <h4 id="preview-name" th:text="${role.name ?: 'Role Name'}">Role Name</h4>
+                            <p id="preview-description" th:text="${role.description ?: 'Role description'}">Role description</p>
+                            <div class="mt-3">
+                                <span class="badge bg-primary" id="preview-level">Level: <span th:text="${role.roleLevel ?: 'N/A'}">N/A</span></span>
+                                <span class="badge" 
+                                      id="preview-status"
+                                      th:class="${role.active != null and role.active ? 'bg-success' : 'bg-danger'}"
+                                      th:text="${role.active != null and role.active ? 'Active' : 'Inactive'}">Active</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </h3>
+                        <div class="quick-actions">
+                            <a th:href="@{/admin/roles/view/{id}(id=${role.id})}" class="quick-action-btn">
+                                <i class="fas fa-eye"></i>
+                                View Role
+                            </a>
+                            <a th:href="@{/admin/roles/assign-users/{id}(id=${role.id})}" class="quick-action-btn">
+                                <i class="fas fa-user-plus"></i>
+                                Assign Users
+                            </a>
+                            <button type="button" class="quick-action-btn" onclick="duplicateRole()">
+                                <i class="fas fa-copy"></i>
+                                Duplicate Role
+                            </button>
+                            <button type="button" class="quick-action-btn text-danger" onclick="confirmReset()">
+                                <i class="fas fa-undo"></i>
+                                Reset Form
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-chart-bar me-2"></i>Statistics
+                        </h3>
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <h4 class="text-primary" id="permission-count">0</h4>
+                                <small class="text-muted">Permissions</small>
+                            </div>
+                            <div class="mb-3">
+                                <h4 class="text-info" th:text="${role.roleLevel ?: 'N/A'}">N/A</h4>
+                                <small class="text-muted">Role Level</small>
+                            </div>
+                            <div>
+                                <h4 class="text-success" th:text="${role.active != null and role.active ? 'Yes' : 'No'}">Yes</h4>
+                                <small class="text-muted">Active Status</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save me-2"></i>Update Role
+                </button>
+                <button type="button" class="btn btn-secondary btn-lg" onclick="window.history.back()">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-lg" onclick="saveDraft()">
+                    <i class="fas fa-save me-2"></i>Save Draft
+                </button>
+            </div>
+        </form>
     </div>
-</div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize permissions array
+        let currentPermissions = /*[[${role.permissions != null ? role.permissions : #lists.emptyList()}]]*/ [];
+        
+        // Character count functions
+        function updateCharacterCount(fieldId, maxLength) {
+            const field = document.getElementById(fieldId);
+            const count = document.getElementById(fieldId + '-count');
+            count.textContent = field.value.length;
+            
+            if (field.value.length > maxLength * 0.9) {
+                count.style.color = '#dc3545';
+            } else if (field.value.length > maxLength * 0.7) {
+                count.style.color = '#ffc107';
+            } else {
+                count.style.color = '#6c757d';
+            }
+            
+            updatePreview();
+        }
+
+        // Update preview
+        function updatePreview() {
+            const name = document.getElementById('name').value;
+            const description = document.getElementById('description').value;
+            const level = document.getElementById('roleLevel').value;
+            const active = document.getElementById('active').checked;
+            
+            document.getElementById('preview-name').textContent = name || 'Role Name';
+            document.getElementById('preview-description').textContent = description || 'Role description';
+            document.getElementById('preview-level').innerHTML = 'Level: ' + (level || 'N/A');
+            
+            const statusBadge = document.getElementById('preview-status');
+            statusBadge.textContent = active ? 'Active' : 'Inactive';
+            statusBadge.className = 'badge ' + (active ? 'bg-success' : 'bg-danger');
+            
+            document.getElementById('permission-count').textContent = currentPermissions.length;
+        }
+
+        // Toggle permission
+        function togglePermission(permission, checked) {
+            if (checked) {
+                if (!currentPermissions.includes(permission)) {
+                    currentPermissions.push(permission);
+                }
+            } else {
+                currentPermissions = currentPermissions.filter(p => p !== permission);
+            }
+            updatePermissionDisplay();
+            updatePreview();
+        }
+
+        // Remove permission
+        function removePermission(permission) {
+            currentPermissions = currentPermissions.filter(p => p !== permission);
+            updatePermissionDisplay();
+            updatePreview();
+            
+            // Uncheck the corresponding checkbox
+            const checkbox = document.getElementById('perm_' + permission);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        }
+
+        // Update permission display
+        function updatePermissionDisplay() {
+            const container = document.getElementById('currentPermissions');
+            if (currentPermissions.length === 0) {
+                container.innerHTML = '<div class="text-muted">No permissions assigned to this role</div>';
+            } else {
+                container.innerHTML = currentPermissions.map(perm => 
+                    `<div class="permission-badge">
+                        <span>${perm}</span>
+                        <span class="remove-btn" onclick="removePermission('${perm}')">×</span>
+                    </div>`
+                ).join('');
+            }
+        }
+
+        // Status toggle
+        document.getElementById('active').addEventListener('change', function() {
+            document.getElementById('status-text').textContent = this.checked ? 'Active' : 'Inactive';
+            updatePreview();
+        });
+
+        // Quick actions
+        function duplicateRole() {
+            const name = document.getElementById('name').value;
+            if (name) {
+                document.getElementById('name').value = name + '_COPY';
+                updateCharacterCount('name', 50);
+            }
+        }
+
+        function confirmReset() {
+            if (confirm('Are you sure you want to reset the form? All changes will be lost.')) {
+                document.getElementById('roleEditForm').reset();
+                currentPermissions = [];
+                updatePermissionDisplay();
+                updatePreview();
+                updateCharacterCount('name', 50);
+                updateCharacterCount('description', 500);
+            }
+        }
+
+        function saveDraft() {
+            // Save to localStorage as draft
+            const formData = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                level: document.getElementById('level').value,
+                active: document.getElementById('active').checked,
+                permissions: currentPermissions
+            };
+            localStorage.setItem('roleDraft', JSON.stringify(formData));
+            alert('Draft saved successfully!');
+        }
+
+        // Load draft on page load
+        function loadDraft() {
+            const draft = localStorage.getItem('roleDraft');
+            if (draft) {
+                const formData = JSON.parse(draft);
+                document.getElementById('name').value = formData.name || '';
+                document.getElementById('description').value = formData.description || '';
+                document.getElementById('level').value = formData.level || '';
+                document.getElementById('active').checked = formData.active || false;
+                currentPermissions = formData.permissions || [];
+                
+                updateCharacterCount('name', 50);
+                updateCharacterCount('description', 500);
+                updatePermissionDisplay();
+                updatePreview();
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDraft();
+            updatePreview();
+            updateCharacterCount('name', 50);
+            updateCharacterCount('description', 500);
+        });
+    </script>
 </body>
 </html>

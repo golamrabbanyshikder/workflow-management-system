@@ -6,9 +6,12 @@ import com.workflow.workflowmanagementsystem.Repository.RoleRepository;
 import com.workflow.workflowmanagementsystem.Repository.TeamRepository;
 import com.workflow.workflowmanagementsystem.Repository.UserRepository;
 import com.workflow.workflowmanagementsystem.entity.AuditLog;
+import com.workflow.workflowmanagementsystem.entity.Department;
 import com.workflow.workflowmanagementsystem.entity.User;
+import com.workflow.workflowmanagementsystem.service.DepartmentService;
 import com.workflow.workflowmanagementsystem.service.TaskService;
 import com.workflow.workflowmanagementsystem.service.WorkflowService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +26,21 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/dashboard")
 public class DashboardController {
+    
+    // Error page handler
+    @GetMapping("/error")
+    public String handleError(HttpServletRequest request, Model model) {
+        String error = "An unexpected error occurred.";
+        Object status = request.getAttribute("javax.servlet.error.status_code");
+        Object exception = request.getAttribute("javax.servlet.error.exception");
+        
+        if (exception != null) {
+            error = exception.toString();
+        }
+        
+        model.addAttribute("error", error);
+        return "error";
+    }
     
     @Autowired
     private WorkflowService workflowService;
@@ -44,6 +62,9 @@ public class DashboardController {
     
     @Autowired
     private TeamRepository teamRepository;
+
+    @Autowired
+    private DepartmentService departmentService;
     
     // Main dashboard page
     @GetMapping({"", "/"})
@@ -68,7 +89,9 @@ public class DashboardController {
     // API endpoint for dashboard statistics
     @GetMapping("/api/statistics")
     @ResponseBody
-    public Map<String, Object> getDashboardStatistics() {
+    public Map<String, Object> getDashboardStatistics(
+            @RequestParam(required = false) Integer dateRange,
+            @RequestParam(required = false) Long department) {
         Map<String, Object> statistics = new HashMap<>();
         
         // Get workflow statistics
@@ -85,7 +108,7 @@ public class DashboardController {
         int totalTasks = taskStatusStats.stream().mapToInt(arr -> ((Long) arr[1]).intValue()).sum();
         int pendingTasks = getTaskCountByStatus(taskStatusStats, "PENDING");
         int overdueTasks = taskService.getOverdueTasks().size();
-        
+        List<Department> getDepartmentsForDashboard = departmentService.getAllDepartments();
         // Basic statistics
         statistics.put("totalWorkflows", totalWorkflows);
         statistics.put("totalTasks", totalTasks);
@@ -94,11 +117,19 @@ public class DashboardController {
         statistics.put("taskStatusStats", taskStatusStats);
         statistics.put("workflowStatusStats", workflowStatusStats);
         statistics.put("priorityStats", taskPriorityStats);
-        
-        // Task trend data (last 7 days)
-        statistics.put("taskTrendData", getTaskTrendData());
+        statistics.put("getDepartmentsForDashboard", getDepartmentsForDashboard);
+        // Task trend data (last 7 days or based on dateRange)
+        statistics.put("taskTrendData", getTaskTrendData(dateRange != null ? dateRange : 7));
         
         return statistics;
+    }
+    
+    // API endpoint for departments list (specifically for dashboard)
+    @GetMapping("/api/departments")
+    @ResponseBody
+    @CrossOrigin(origins = "*", allowedHeaders = "*")
+    public List<Department> getDepartmentsForDashboard() {
+        return departmentService.getAllDepartments();
     }
     
     // API endpoint for recent activities
@@ -181,16 +212,16 @@ public class DashboardController {
     }
     
     // Helper method to generate task trend data
-    private Map<String, Object> getTaskTrendData() {
+    private Map<String, Object> getTaskTrendData(int days) {
         List<String> labels = new ArrayList<>();
         List<Integer> data = new ArrayList<>();
         
-        // Get completed tasks for the last 7 days
+        // Get completed tasks for the specified number of days
         LocalDateTime endDate = LocalDateTime.now();
-        LocalDateTime startDate = endDate.minusDays(7);
+        LocalDateTime startDate = endDate.minusDays(days);
         
         // For demo purposes, return sample data
-        for (int i = 6; i >= 0; i--) {
+        for (int i = days - 1; i >= 0; i--) {
             LocalDateTime dayStart = endDate.minusDays(i);
             labels.add(dayStart.toLocalDate().toString());
             data.add((int) (Math.random() * 10)); // Sample data

@@ -151,18 +151,16 @@
                                             <a th:href="@{/tasks/view/{id}(id=${task.id})}" th:text="${task.title}"></a>
                                         </td>
                                         <td>
-                                            <span class="badge" 
-                                                  th:classappend="${task.status.name() == 'COMPLETED' ? 'bg-success' : 
-                                                                 task.status.name() == 'IN_PROGRESS' ? 'bg-primary' :
-                                                                 task.status.name() == 'PENDING' ? 'bg-warning' :
-                                                                 task.status.name() == 'ON_HOLD' ? 'bg-info' : 'bg-danger'}"
+                                            <span th:class="|badge ${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-success' :
+                                                           task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 'bg-primary' :
+                                                           task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 'bg-warning' :
+                                                           task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 'bg-info' : 'bg-danger'}|"
                                                   th:text="${task.status.displayName}"></span>
                                         </td>
                                         <td>
-                                            <span class="badge" 
-                                                  th:classappend="${task.priority.name() == 'URGENT' ? 'bg-danger' : 
-                                                                 task.priority.name() == 'HIGH' ? 'bg-warning' :
-                                                                 task.priority.name() == 'MEDIUM' ? 'bg-info' : 'bg-secondary'}"
+                                            <span th:class="|badge ${task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).URGENT ? 'bg-danger' :
+                                                           task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).HIGH ? 'bg-warning' :
+                                                           task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).MEDIUM ? 'bg-info' : 'bg-secondary'}|"
                                                   th:text="${task.priority.displayName}"></span>
                                         </td>
                                         <td th:text="${#temporals.format(task.dueDate, 'yyyy-MM-dd HH:mm')}"

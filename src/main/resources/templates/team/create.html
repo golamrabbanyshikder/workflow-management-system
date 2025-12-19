@@ -222,7 +222,7 @@
                 </div>
                 
                 <div class="form-body">
-                    <form th:action="@{/teams/create}" th:object="${team}" method="post" id="teamForm">
+                    <form th:action="@{/admin/teams/create}" th:object="${team}" method="post" id="teamForm">
                         <!-- Basic Information Section -->
                         <div class="form-section">
                             <div class="form-section-title">
@@ -290,11 +290,11 @@
                                         <label for="teamLead" class="form-label">
                                             Team Lead
                                         </label>
-                                        <select class="form-select" id="teamLead">
+                                        <select class="form-select" id="teamLead" name="teamLeadId">
                                             <option value="">Select Team Lead</option>
-                                            <!-- Options will be populated dynamically -->
-                                            <option value="1">John Doe</option>
-                                            <option value="2">Jane Smith</option>
+                                            <option th:each="user : ${users}"
+                                                    th:value="${user.id}"
+                                                    th:text="${user.firstName + ' ' + user.lastName}">User</option>
                                         </select>
                                         <div class="help-text">
                                             <i class="fas fa-lightbulb me-1"></i>
@@ -337,10 +337,9 @@
                                 </label>
                                 <select class="form-select" id="teamMembers" multiple>
                                     <option value="">Select team members</option>
-                                    <!-- Options will be populated dynamically -->
-                                    <option value="1">John Doe (Developer)</option>
-                                    <option value="2">Jane Smith (Designer)</option>
-                                    <option value="3">Mike Johnson (Tester)</option>
+                                    <option th:each="user : ${users}"
+                                            th:value="${user.id}"
+                                            th:text="${user.firstName + ' ' + user.lastName + ' (' + user.email + ')'}">User</option>
                                 </select>
                                 <div class="help-text">
                                     <i class="fas fa-lightbulb me-1"></i>
@@ -431,7 +430,7 @@
 
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between align-items-center">
-                            <a th:href="@{/teams}" class="btn btn-secondary">
+                            <a th:href="@{/admin/teams}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Cancel
                             </a>
                             <div>

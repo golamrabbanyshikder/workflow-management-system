@@ -1,7 +1,5 @@
 package com.workflow.workflowmanagementsystem.service;
 
-
-
 import com.workflow.workflowmanagementsystem.Repository.DepartmentRepository;
 import com.workflow.workflowmanagementsystem.Repository.RoleRepository;
 import com.workflow.workflowmanagementsystem.Repository.TeamRepository;
@@ -12,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -91,5 +92,69 @@ public class UserService {
 
             userRepository.save(ceo);
         }
+    }
+    
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+    
+    public List<User> getActiveUsers() {
+        return userRepository.findAll().stream()
+                .filter(User::isEnabled)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    public Optional<User> getUserById(Long id) {
+        return userRepository.findById(id);
+    }
+    
+    public User updateUser(Long id, User userDetails) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        
+        user.setUsername(userDetails.getUsername());
+        user.setEmail(userDetails.getEmail());
+        user.setFirstName(userDetails.getFirstName());
+        user.setLastName(userDetails.getLastName());
+        user.setEnabled(userDetails.isEnabled());
+        
+        return userRepository.save(user);
+    }
+    
+    public void deleteUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        userRepository.delete(user);
+    }
+    
+    public List<User> getUsersByDepartment(Long departmentId) {
+        return userRepository.findActiveUsersByDepartmentId(departmentId);
+    }
+    
+    public List<User> getUsersByTeam(Long teamId) {
+        return userRepository.findActiveUsersByTeamId(teamId);
+    }
+    
+    public List<User> searchUsers(String keyword) {
+        return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(keyword);
+    }
+    
+    public User assignUserToTeam(Long userId, Long teamId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new RuntimeException("Team not found with id: " + teamId));
+        
+        user.setTeam(team);
+        return userRepository.save(user);
+    }
+    
+    public User removeUserFromTeam(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        user.setTeam(null);
+        return userRepository.save(user);
     }
 }

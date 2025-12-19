@@ -1,5 +1,6 @@
 package com.workflow.workflowmanagementsystem.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,6 +25,7 @@ public class Department {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "department")
+    @JsonIgnore
     private List<Team> teams = new ArrayList<>();
 
     public Department() {}

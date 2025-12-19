@@ -157,7 +157,7 @@
                         <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createTeamModal">
                             <i class="fas fa-plus-circle me-2"></i>Create Team
                         </button>
-                        <button class="btn btn-outline-primary btn-lg" onclick="window.location.href='/teams/assign-users'">
+                        <button class="btn btn-outline-primary btn-lg" onclick="window.location.href='/admin/teams/assign-users'">
                             <i class="fas fa-user-plus me-2"></i>Assign Users
                         </button>
                     </div>
@@ -177,11 +177,12 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select" id="departmentFilter">
+                    <select class="form-select" id="departmentFilter" onchange="filterByDepartment()">
                         <option value="">All Departments</option>
-                        <option th:each="dept : ${departments}" 
-                                th:value="${dept.id}" 
-                                th:text="${dept.name}">Department</option>
+                        <option th:each="dept : ${departments}"
+                                th:value="${dept.id}"
+                                th:text="${dept.name}"
+                                th:selected="${selectedDepartment != null and selectedDepartment.id == dept.id}">Department</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -222,7 +223,7 @@
             <div class="col-md-6 col-lg-4" th:each="team : ${teams}">
                 <div class="card team-card h-100">
                     <div class="team-header">
-                        <div class="team-status" th:class="${team.active ? '' : 'inactive'}"></div>
+                        <div class="team-status" th:class="${team.active == true ? '' : 'inactive'}"></div>
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <i class="fas fa-users team-icon"></i>
@@ -312,7 +313,7 @@
                                 <td th:text="${team.id}"></td>
                                 <td>
                                     <strong th:text="${team.name}"></strong>
-                                    <div class="team-status d-inline-block ms-2" th:class="${team.active ? '' : 'inactive'}"></div>
+                                    <div class="team-status d-inline-block ms-2" th:class="${team.active == true ? '' : 'inactive'}"></div>
                                 </td>
                                 <td th:text="${team.description ?: 'N/A'}"></td>
                                 <td>
@@ -365,7 +366,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>Cancel
                     </button>
-                    <a th:href="@{/teams/create}" class="btn btn-primary">
+                    <a th:href="@{/admin/teams/create}" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>Go to Create Form
                     </a>
                 </div>
@@ -402,35 +403,62 @@
             });
         });
 
-        // Department filter
-        document.getElementById('departmentFilter').addEventListener('change', function() {
-            const deptId = this.value;
-            const cards = document.querySelectorAll('.team-card');
-            
-            cards.forEach(card => {
-                if (!deptId) {
-                    card.parentElement.style.display = 'block';
-                } else {
-                    // Filter logic based on department
-                    card.parentElement.style.display = 'block'; // Placeholder
-                }
-            });
-        });
-
         // Team actions
         function viewTeam(id) {
-            window.location.href = '/teams/view/' + id;
+            window.location.href = '/admin/teams/view/' + id;
         }
 
         function editTeam(id) {
-            window.location.href = '/teams/edit/' + id;
+            window.location.href = '/admin/teams/edit/' + id;
         }
 
         function deleteTeam(id, name) {
             if (confirm(`Are you sure you want to delete the team "${name}"? This action cannot be undone.`)) {
-                window.location.href = '/teams/delete/' + id;
+                window.location.href = '/admin/teams/delete/' + id;
             }
         }
+        
+        function filterByDepartment() {
+            const departmentId = document.getElementById('departmentFilter').value;
+            const url = departmentId ? `/admin/teams/department/${departmentId}` : '/admin/teams';
+            window.location.href = url;
+        }
+        
+        function searchTeams() {
+            const searchTerm = document.getElementById('searchInput').value;
+            const departmentId = document.getElementById('departmentFilter').value;
+            const url = `/admin/teams/search?name=${searchTerm}&departmentId=${departmentId}`;
+            window.location.href = url;
+        }
+        
+        function toggleTeamStatus(id, currentStatus) {
+            const newStatus = !currentStatus;
+            if (confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this team?`)) {
+                fetch(`/admin/teams/status/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `active=${newStatus}`
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Failed to update team status');
+                    }
+                });
+            }
+        }
+
+        // Initialize department filter on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const departmentFilter = document.getElementById('departmentFilter');
+            const selectedDepartmentId = /*[[${selectedDepartment != null ? selectedDepartment.id : 'null'}]]*/ 'null';
+            
+            if (departmentFilter && selectedDepartmentId && selectedDepartmentId !== 'null') {
+                departmentFilter.value = selectedDepartmentId;
+            }
+        });
 
         // Sort functionality
         document.getElementById('sortBy').addEventListener('change', function() {

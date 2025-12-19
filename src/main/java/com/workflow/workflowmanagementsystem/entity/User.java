@@ -1,5 +1,6 @@
 package com.workflow.workflowmanagementsystem.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -32,10 +33,12 @@ public class User {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnore
     private Set<UserRole> userRoles = new HashSet<>();
 
     @ManyToOne
     @JoinColumn(name = "team_id")
+    @JsonIgnore
     private Team team;
 
     public User() {}

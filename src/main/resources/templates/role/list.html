@@ -95,6 +95,33 @@
             margin-bottom: 20px;
             opacity: 0.5;
         }
+        .filter-tag {
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+        .filter-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .bulk-actions {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .role-row:hover {
+            background-color: #f8f9fa;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .bulk-actions {
+                display: none !important;
+            }
+        }
         .role-type {
             position: absolute;
             top: 15px;
@@ -146,44 +173,111 @@
             </div>
         </div>
 
-        <!-- Search and Filter Bar -->
+        <!-- Advanced Search and Filter Bar -->
         <div class="search-bar">
-            <div class="row align-items-center">
-                <div class="col-md-4">
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="fas fa-search"></i>
-                        </span>
-                        <input type="text" class="form-control" id="searchInput" placeholder="Search roles...">
+            <form th:action="@{/admin/roles/search}" method="get" id="searchForm">
+                <div class="row align-items-center mb-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text"
+                                   class="form-control"
+                                   id="searchInput"
+                                   name="name"
+                                   th:value="${searchName}"
+                                   placeholder="Search roles by name...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="roleTypeFilter" name="roleType">
+                            <option value="">All Role Types</option>
+                            <option value="admin" th:selected="${searchType == 'admin'}">Admin Roles</option>
+                            <option value="user" th:selected="${searchType == 'user'}">User Roles</option>
+                            <option value="lead" th:selected="${searchType == 'lead'}">Leadership Roles</option>
+                            <option value="system" th:selected="${searchType == 'system'}">System Roles</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="statusFilter" name="active">
+                            <option value="">All Status</option>
+                            <option value="true" th:selected="${searchActive == true}">Active Only</option>
+                            <option value="false" th:selected="${searchActive == false}">Inactive Only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i>Search
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="roleTypeFilter">
-                        <option value="">All Role Types</option>
-                        <option value="admin">Admin Roles</option>
-                        <option value="user">User Roles</option>
-                        <option value="system">System Roles</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="sortBy">
-                        <option value="name">Sort by Name</option>
-                        <option value="userCount">Sort by Users</option>
-                        <option value="permissions">Sort by Permissions</option>
-                        <option value="createdAt">Sort by Date Created</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <div class="btn-group w-100">
-                        <button class="btn btn-outline-secondary active" id="gridView">
-                            <i class="fas fa-th"></i>
-                        </button>
-                        <button class="btn btn-outline-secondary" id="listView">
-                            <i class="fas fa-list"></i>
-                        </button>
+                
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <select class="form-select" id="permissionFilter" name="permission">
+                            <option value="">All Permissions</option>
+                            <option th:each="perm : ${availablePermissions}"
+                                    th:value="${perm}"
+                                    th:text="${perm}"
+                                    th:selected="${selectedPermission == perm}">PERMISSION</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="levelFilter" name="level">
+                            <option value="">All Levels</option>
+                            <option value="1" th:selected="${selectedLevel == 1}">Level 1</option>
+                            <option value="2" th:selected="${selectedLevel == 2}">Level 2</option>
+                            <option value="3" th:selected="${selectedLevel == 3}">Level 3</option>
+                            <option value="4" th:selected="${selectedLevel == 4}">Level 4</option>
+                            <option value="5" th:selected="${selectedLevel == 5}">Level 5+</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="sortBy" name="sortBy">
+                            <option value="name" th:selected="${sortBy == 'name'}">Sort by Name</option>
+                            <option value="level" th:selected="${sortBy == 'level'}">Sort by Level</option>
+                            <option value="userCount" th:selected="${sortBy == 'userCount'}">Sort by Users</option>
+                            <option value="permissionCount" th:selected="${sortBy == 'permissionCount'}">Sort by Permissions</option>
+                            <option value="active" th:selected="${sortBy == 'active'}">Sort by Status</option>
+                            <option value="createdAt" th:selected="${sortBy == 'createdAt'}">Sort by Date Created</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="btn-group w-100">
+                            <button type="button" class="btn btn-outline-secondary active" id="gridView" onclick="setViewMode('grid')">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="listView" onclick="setViewMode('list')">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+                
+                <!-- Quick Filter Tags -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-primary filter-tag" onclick="quickFilter('admin')">
+                                <i class="fas fa-crown me-1"></i>Admin Roles
+                            </span>
+                            <span class="badge bg-success filter-tag" onclick="quickFilter('user')">
+                                <i class="fas fa-user me-1"></i>User Roles
+                            </span>
+                            <span class="badge bg-warning filter-tag" onclick="quickFilter('lead')">
+                                <i class="fas fa-user-tie me-1"></i>Leadership
+                            </span>
+                            <span class="badge bg-info filter-tag" onclick="quickFilter('active')">
+                                <i class="fas fa-check me-1"></i>Active Only
+                            </span>
+                            <span class="badge bg-secondary filter-tag" onclick="clearFilters()">
+                                <i class="fas fa-times me-1"></i>Clear Filters
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <!-- Flash Messages -->
@@ -203,21 +297,17 @@
             <div class="col-md-6 col-lg-4" th:each="role : ${roles}">
                 <div class="card role-card h-100">
                     <div class="role-header">
-                        <div class="role-type" 
-                             th:classappend="${#strings.contains(role.name, 'ADMIN') ? 'admin' : 
-                                           (#strings.contains(role.name, 'CEO') ? 'admin' : 
-                                           (#strings.contains(role.name, 'DEPARTMENT_HEAD') ? 'admin' : 
-                                           (#strings.contains(role.name, 'TEAM_LEAD') ? 'user' : 'user'))}">
-                            <span th:if="${#strings.contains(role.name, 'ADMIN')}">ADMIN</span>
-                            <span th:if="${#strings.contains(role.name, 'CEO')}">ADMIN</span>
-                            <span th:if="${#strings.contains(role.name, 'DEPARTMENT_HEAD')}">ADMIN</span>
-                            <span th:if="${#strings.contains(role.name, 'TEAM_LEAD')}">LEAD</span>
-                            <span th:if="${#strings.contains(role.name, 'EMPLOYEE')}">USER</span>
+                        <div class="role-type" th:class="${role.name != null and #strings.contains(role.name, 'ADMIN') ? 'admin' : 'user'}">
+                            <span th:if="${role.name != null and #strings.contains(role.name, 'ADMIN')}">ADMIN</span>
+                            <span th:if="${role.name != null and #strings.contains(role.name, 'CEO')}">ADMIN</span>
+                            <span th:if="${role.name != null and #strings.contains(role.name, 'DEPARTMENT_HEAD')}">ADMIN</span>
+                            <span th:if="${role.name != null and #strings.contains(role.name, 'TEAM_LEAD')}">LEAD</span>
+                            <span th:if="${role.name != null and #strings.contains(role.name, 'EMPLOYEE')}">USER</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <i class="fas fa-user-tag role-icon"></i>
-                                <h5 class="mt-2 mb-1" th:text="${role.name}">Role Name</h5>
+                                <h5 class="mt-2 mb-1" th:text="${role.name ?: 'Unknown Role'}">Role Name</h5>
                             </div>
                         </div>
                     </div>
@@ -230,8 +320,8 @@
                             <div class="permission-badge">READ</div>
                             <div class="permission-badge">WRITE</div>
                             <div class="permission-badge">DELETE</div>
-                            <div class="permission-badge" th:if="${#strings.contains(role.name, 'ADMIN')}">MANAGE</div>
-                            <div class="permission-badge" th:if="${#strings.contains(role.name, 'TEAM_LEAD')}">ASSIGN</div>
+                            <div class="permission-badge" th:if="${role.name != null and #strings.contains(role.name, 'ADMIN')}">MANAGE</div>
+                            <div class="permission-badge" th:if="${role.name != null and #strings.contains(role.name, 'TEAM_LEAD')}">ASSIGN</div>
                         </div>
                         
                         <div class="stats-row">
@@ -240,11 +330,11 @@
                                 <div class="stat-label">Users</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value" th:text="${role.permissionCount ?: 5}">5</div>
+                                <div class="stat-value" th:text="${role.permissionCount != null ? role.permissionCount : 5}">5</div>
                                 <div class="stat-label">Permissions</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value" th:text="${role.active ? 'Yes' : 'No'}">Yes</div>
+                                <div class="stat-value" th:text="${role.active != null ? (role.active ? 'Yes' : 'No') : 'No'}">Yes</div>
                                 <div class="stat-label">Active</div>
                             </div>
                         </div>
@@ -256,7 +346,7 @@
                             <button class="btn btn-outline-warning btn-sm" th:data-id="${role.id}" onclick="editRole(this.getAttribute('data-id'))">
                                 <i class="fas fa-edit me-1"></i>Edit
                             </button>
-                            <button class="btn btn-outline-danger btn-sm" th:data-id="${role.id}" th:data-name="${role.name}" onclick="deleteRole(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                            <button class="btn btn-outline-danger btn-sm" th:data-id="${role.id}" th:data-name="${role.name ?: 'Unknown Role'}" onclick="deleteRole(this.getAttribute('data-id'), this.getAttribute('data-name'))">
                                 <i class="fas fa-trash me-1"></i>Delete
                             </button>
                         </div>
@@ -275,44 +365,101 @@
             </button>
         </div>
 
-        <!-- Table View (Hidden by default) -->
+        <!-- Enhanced Table View (Hidden by default) -->
         <div id="rolesTable" class="card" style="display: none;">
             <div class="card-body">
+                <!-- Table Header with Export Options -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>Table View
+                        <span class="badge bg-primary ms-2" th:text="${#lists.size(roles)}">0</span>
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportToCSV()">
+                            <i class="fas fa-file-csv me-1"></i>Export CSV
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="printTable()">
+                            <i class="fas fa-print me-1"></i>Print
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="rolesDataTable">
                         <thead class="table-light">
                             <tr>
-                                <th><i class="fas fa-hashtag me-1"></i>ID</th>
-                                <th><i class="fas fa-user-tag me-1"></i>Role Name</th>
-                                <th><i class="fas fa-shield-alt me-1"></i>Type</th>
-                                <th><i class="fas fa-users me-1"></i>Users</th>
-                                <th><i class="fas fa-key me-1"></i>Permissions</th>
-                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                                <th>
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                </th>
+                                <th>
+                                    <i class="fas fa-hashtag me-1"></i>ID
+                                    <button class="btn btn-sm btn-link p-0" onclick="sortTable('id')">
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <i class="fas fa-user-tag me-1"></i>Role Name
+                                    <button class="btn btn-sm btn-link p-0" onclick="sortTable('name')">
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <i class="fas fa-shield-alt me-1"></i>Type
+                                </th>
+                                <th>
+                                    <i class="fas fa-layer-group me-1"></i>Level
+                                    <button class="btn btn-sm btn-link p-0" onclick="sortTable('level')">
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <i class="fas fa-users me-1"></i>Users
+                                    <button class="btn btn-sm btn-link p-0" onclick="sortTable('userCount')">
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <i class="fas fa-key me-1"></i>Permissions
+                                    <button class="btn btn-sm btn-link p-0" onclick="sortTable('permissionCount')">
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <i class="fas fa-toggle-on me-1"></i>Status
+                                    <button class="btn btn-sm btn-link p-0" onclick="sortTable('active')">
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <i class="fas fa-cogs me-1"></i>Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="role : ${roles}">
-                                <td th:text="${role.id}"></td>
+                            <tr th:each="role : ${roles}" class="role-row" th:data-id="${role.id}">
                                 <td>
-                                    <strong th:text="${role.name}"></strong>
-                                    <div class="role-type d-inline-block ms-2" 
-                                         th:classappend="${#strings.contains(role.name, 'ADMIN') ? 'admin' : 
-                                                       (#strings.contains(role.name, 'CEO') ? 'admin' : 
-                                                       (#strings.contains(role.name, 'DEPARTMENT_HEAD') ? 'admin' : 
-                                                       (#strings.contains(role.name, 'TEAM_LEAD') ? 'user' : 'user'))}">
-                                        <span th:if="${#strings.contains(role.name, 'ADMIN')}">ADMIN</span>
-                                        <span th:if="${#strings.contains(role.name, 'CEO')}">ADMIN</span>
-                                        <span th:if="${#strings.contains(role.name, 'DEPARTMENT_HEAD')}">ADMIN</span>
-                                        <span th:if="${#strings.contains(role.name, 'TEAM_LEAD')}">LEAD</span>
-                                        <span th:if="${#strings.contains(role.name, 'EMPLOYEE')}">USER</span>
+                                    <input type="checkbox" class="role-checkbox" th:value="${role.id}">
+                                </td>
+                                <td th:text="${role.id ?: 'N/A'}"></td>
+                                <td>
+                                    <strong th:text="${role.name ?: 'Unknown Role'}"></strong>
+                                    <div class="role-type d-inline-block ms-2" th:class="${role.name != null and #strings.contains(role.name, 'ADMIN') ? 'admin' : 'user'}">
+                                        <span th:if="${role.name != null and #strings.contains(role.name, 'ADMIN')}">ADMIN</span>
+                                        <span th:if="${role.name != null and #strings.contains(role.name, 'CEO')}">ADMIN</span>
+                                        <span th:if="${role.name != null and #strings.contains(role.name, 'DEPARTMENT_HEAD')}">ADMIN</span>
+                                        <span th:if="${role.name != null and #strings.contains(role.name, 'TEAM_LEAD')}">LEAD</span>
+                                        <span th:if="${role.name != null and #strings.contains(role.name, 'EMPLOYEE')}">USER</span>
                                     </div>
                                 </td>
                                 <td>
-                                    <span th:if="${#strings.contains(role.name, 'ADMIN')}" class="badge bg-danger">Admin</span>
-                                    <span th:if="${#strings.contains(role.name, 'CEO')}" class="badge bg-danger">Admin</span>
-                                    <span th:if="${#strings.contains(role.name, 'DEPARTMENT_HEAD')}" class="badge bg-danger">Admin</span>
-                                    <span th:if="${#strings.contains(role.name, 'TEAM_LEAD')}" class="badge bg-warning">Lead</span>
-                                    <span th:if="${#strings.contains(role.name, 'EMPLOYEE')}" class="badge bg-success">User</span>
+                                    <span th:if="${role.name != null and #strings.contains(role.name, 'ADMIN')}" class="badge bg-danger">Admin</span>
+                                    <span th:if="${role.name != null and #strings.contains(role.name, 'CEO')}" class="badge bg-danger">Admin</span>
+                                    <span th:if="${role.name != null and #strings.contains(role.name, 'DEPARTMENT_HEAD')}" class="badge bg-danger">Admin</span>
+                                    <span th:if="${role.name != null and #strings.contains(role.name, 'TEAM_LEAD')}" class="badge bg-warning">Lead</span>
+                                    <span th:if="${role.name != null and #strings.contains(role.name, 'EMPLOYEE')}" class="badge bg-success">User</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary" th:text="${role.roleLevel ?: 'N/A'}">N/A</span>
                                 </td>
                                 <td>
                                     <span class="badge bg-primary" th:text="${role.userCount ?: 0}">0</span>
@@ -321,14 +468,25 @@
                                     <span class="badge bg-info" th:text="${role.permissionCount ?: 5}">5</span>
                                 </td>
                                 <td>
+                                    <span class="badge"
+                                          th:class="${role.active != null and role.active ? 'bg-success' : 'bg-danger'}"
+                                          th:text="${role.active != null and role.active ? 'Active' : 'Inactive'}">Active</span>
+                                </td>
+                                <td>
                                     <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" th:data-id="${role.id}" onclick="viewRole(this.getAttribute('data-id'))">
+                                        <button class="btn btn-sm btn-outline-primary" th:data-id="${role.id}" onclick="viewRole(this.getAttribute('data-id'))" title="View">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-warning" th:data-id="${role.id}" onclick="editRole(this.getAttribute('data-id'))">
+                                        <button class="btn btn-sm btn-outline-warning" th:data-id="${role.id}" onclick="editRole(this.getAttribute('data-id'))" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" th:data-id="${role.id}" th:data-name="${role.name}" onclick="deleteRole(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                        <button class="btn btn-sm btn-outline-info" th:data-id="${role.id}" onclick="duplicateRole(this.getAttribute('data-id'))" title="Duplicate">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" th:data-id="${role.id}" th:data-active="${role.active}" onclick="toggleStatus(this.getAttribute('data-id'), this.getAttribute('data-active'))" title="Toggle Status">
+                                            <i th:class="${role.active != null and role.active ? 'fas fa-pause' : 'fas fa-play'}"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" th:data-id="${role.id}" th:data-name="${role.name ?: 'Unknown Role'}" onclick="deleteRole(this.getAttribute('data-id'), this.getAttribute('data-name'))" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -336,6 +494,27 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Bulk Actions -->
+                <div class="bulk-actions mt-3" id="bulkActions" style="display: none;">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-muted">
+                            <span id="selectedCount">0</span> items selected
+                        </span>
+                        <button class="btn btn-outline-primary btn-sm" onclick="bulkEdit()">
+                            <i class="fas fa-edit me-1"></i>Bulk Edit
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="bulkActivate()">
+                            <i class="fas fa-check me-1"></i>Activate
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="bulkDeactivate()">
+                            <i class="fas fa-pause me-1"></i>Deactivate
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="bulkDelete()">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -351,7 +530,7 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-info">
+                <form th:action="@{/admin/roles/create}" method="post" th:object="${role}">
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-6">
@@ -438,82 +617,286 @@
                             <i class="fas fa-save me-1"></i>Create Role
                         </button>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- Enhanced JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // View Toggle
-        document.getElementById('gridView').addEventListener('click', function() {
-            document.getElementById('rolesGrid').style.display = 'flex';
-            document.getElementById('rolesTable').style.display = 'none';
-            this.classList.add('active');
-            document.getElementById('listView').classList.remove('active');
-        });
-
-        document.getElementById('listView').addEventListener('click', function() {
-            document.getElementById('rolesGrid').style.display = 'none';
-            document.getElementById('rolesTable').style.display = 'block';
-            this.classList.add('active');
-            document.getElementById('gridView').classList.remove('active');
-        });
-
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const cards = document.querySelectorAll('.role-card');
+        function setViewMode(mode) {
+            const gridView = document.getElementById('gridView');
+            const listView = document.getElementById('listView');
+            const rolesGrid = document.getElementById('rolesGrid');
+            const rolesTable = document.getElementById('rolesTable');
             
-            cards.forEach(card => {
-                const text = card.textContent.toLowerCase();
-                card.parentElement.style.display = text.includes(searchTerm) ? 'block' : 'none';
-            });
-        });
+            if (mode === 'grid') {
+                rolesGrid.style.display = 'flex';
+                rolesTable.style.display = 'none';
+                gridView.classList.add('active');
+                listView.classList.remove('active');
+                localStorage.setItem('roleViewMode', 'grid');
+            } else {
+                rolesGrid.style.display = 'none';
+                rolesTable.style.display = 'block';
+                gridView.classList.remove('active');
+                listView.classList.add('active');
+                localStorage.setItem('roleViewMode', 'list');
+            }
+        }
 
-        // Role type filter
-        document.getElementById('roleTypeFilter').addEventListener('change', function() {
-            const roleType = this.value;
-            const cards = document.querySelectorAll('.role-card');
+        // Quick filter functions
+        function quickFilter(type) {
+            const searchForm = document.getElementById('searchForm');
+            const roleTypeFilter = document.getElementById('roleTypeFilter');
+            const statusFilter = document.getElementById('statusFilter');
             
-            cards.forEach(card => {
-                if (!roleType) {
-                    card.parentElement.style.display = 'block';
-                } else {
-                    // Filter logic based on role type
-                    card.parentElement.style.display = 'block'; // Placeholder
-                }
-            });
-        });
+            switch(type) {
+                case 'admin':
+                    roleTypeFilter.value = 'admin';
+                    statusFilter.value = '';
+                    break;
+                case 'user':
+                    roleTypeFilter.value = 'user';
+                    statusFilter.value = '';
+                    break;
+                case 'lead':
+                    roleTypeFilter.value = 'lead';
+                    statusFilter.value = '';
+                    break;
+                case 'active':
+                    roleTypeFilter.value = '';
+                    statusFilter.value = 'true';
+                    break;
+            }
+            
+            searchForm.submit();
+        }
+
+        function clearFilters() {
+            const searchForm = document.getElementById('searchForm');
+            searchForm.reset();
+            searchForm.submit();
+        }
 
         // Role actions
         function viewRole(id) {
-            window.location.href = '/roles/view/' + id;
+            window.location.href = '/admin/roles/view/' + id;
         }
 
         function editRole(id) {
-            window.location.href = '/roles/edit/' + id;
+            window.location.href = '/admin/roles/edit/' + id;
+        }
+
+        function duplicateRole(id) {
+            if (confirm('Are you sure you want to duplicate this role?')) {
+                window.location.href = '/admin/roles/duplicate/' + id;
+            }
+        }
+
+        function toggleStatus(id, currentStatus) {
+            const newStatus = currentStatus === 'true' ? false : true;
+            const action = newStatus ? 'activate' : 'deactivate';
+            
+            if (confirm(`Are you sure you want to ${action} this role?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/admin/roles/status/${id}`;
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'active';
+                input.value = newStatus;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
         function deleteRole(id, name) {
             if (confirm(`Are you sure you want to delete the role "${name}"? This action cannot be undone and may affect user permissions.`)) {
-                window.location.href = '/roles/delete/' + id;
+                window.location.href = '/admin/roles/delete/' + id;
             }
         }
 
-        // Sort functionality
-        document.getElementById('sortBy').addEventListener('change', function() {
-            const sortBy = this.value;
-            const grid = document.getElementById('rolesGrid');
-            const cards = Array.from(grid.children);
+        // Table functionality
+        function sortTable(column) {
+            const table = document.getElementById('rolesDataTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
             
-            cards.sort((a, b) => {
-                // Implement sorting logic based on selected option
-                return 0; // Placeholder
+            rows.sort((a, b) => {
+                let aValue, bValue;
+                
+                switch(column) {
+                    case 'id':
+                        aValue = parseInt(a.cells[1].textContent);
+                        bValue = parseInt(b.cells[1].textContent);
+                        break;
+                    case 'name':
+                        aValue = a.cells[2].textContent.trim();
+                        bValue = b.cells[2].textContent.trim();
+                        return aValue.localeCompare(bValue);
+                    case 'level':
+                        aValue = parseInt(a.cells[4].textContent) || 0;
+                        bValue = parseInt(b.cells[4].textContent) || 0;
+                        break;
+                    case 'userCount':
+                        aValue = parseInt(a.cells[5].textContent) || 0;
+                        bValue = parseInt(b.cells[5].textContent) || 0;
+                        break;
+                    case 'permissionCount':
+                        aValue = parseInt(a.cells[6].textContent) || 0;
+                        bValue = parseInt(b.cells[6].textContent) || 0;
+                        break;
+                    case 'active':
+                        aValue = a.cells[7].textContent.trim();
+                        bValue = b.cells[7].textContent.trim();
+                        return aValue.localeCompare(bValue);
+                }
+                
+                return aValue - bValue;
             });
             
-            cards.forEach(card => grid.appendChild(card));
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.role-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateBulkActions();
+        }
+
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.role-checkbox:checked');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (checkboxes.length > 0) {
+                bulkActions.style.display = 'block';
+                selectedCount.textContent = checkboxes.length;
+            } else {
+                bulkActions.style.display = 'none';
+            }
+        }
+
+        function bulkEdit() {
+            const selectedIds = Array.from(document.querySelectorAll('.role-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedIds.length > 0) {
+                // Implement bulk edit functionality
+                alert('Bulk edit functionality to be implemented');
+            }
+        }
+
+        function bulkActivate() {
+            bulkStatusUpdate(true);
+        }
+
+        function bulkDeactivate() {
+            bulkStatusUpdate(false);
+        }
+
+        function bulkStatusUpdate(active) {
+            const selectedIds = Array.from(document.querySelectorAll('.role-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedIds.length > 0 && confirm(`Are you sure you want to ${active ? 'activate' : 'deactivate'} ${selectedIds.length} roles?`)) {
+                // Implement bulk status update
+                selectedIds.forEach(id => {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/admin/roles/status/${id}`;
+                    
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'active';
+                    input.value = active;
+                    
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            }
+        }
+
+        function bulkDelete() {
+            const selectedIds = Array.from(document.querySelectorAll('.role-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedIds.length > 0 && confirm(`Are you sure you want to delete ${selectedIds.length} roles? This action cannot be undone.`)) {
+                // Implement bulk delete
+                selectedIds.forEach(id => {
+                    window.location.href = '/admin/roles/delete/' + id;
+                });
+            }
+        }
+
+        function exportToCSV() {
+            const table = document.getElementById('rolesDataTable');
+            let csv = [];
+            
+            // Get headers
+            const headers = Array.from(table.querySelectorAll('thead th'))
+                .slice(1) // Skip checkbox column
+                .map(th => th.textContent.trim());
+            csv.push(headers.join(','));
+            
+            // Get rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = Array.from(row.cells)
+                    .slice(1) // Skip checkbox column
+                    .map(cell => cell.textContent.trim());
+                csv.push(rowData.join(','));
+            });
+            
+            // Download CSV
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'roles_export.csv';
+            a.click();
+        }
+
+        function printTable() {
+            window.print();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Restore view mode from localStorage
+            const savedViewMode = localStorage.getItem('roleViewMode');
+            if (savedViewMode === 'list') {
+                setViewMode('list');
+            }
+            
+            // Add event listeners to checkboxes
+            document.querySelectorAll('.role-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateBulkActions);
+            });
+            
+            // Live search for grid view
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const cards = document.querySelectorAll('.role-card');
+                
+                cards.forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    card.parentElement.style.display = text.includes(searchTerm) ? 'block' : 'none';
+                });
+            });
         });
     </script>
 </body>

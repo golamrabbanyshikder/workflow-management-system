@@ -38,6 +38,14 @@ public class DepartmentController {
         return "redirect:/admin/departments";
     }
 
+    @GetMapping("/view/{id}")
+    public String viewDepartment(@PathVariable Long id, Model model) {
+        Department department = departmentService.getDepartmentById(id)
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+        model.addAttribute("department", department);
+        return "department/view";
+    }
+
     @GetMapping("/edit/{id}")
     public String showEditForm(@PathVariable Long id, Model model) {
         Department department = departmentService.getDepartmentById(id)

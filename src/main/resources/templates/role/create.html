@@ -227,7 +227,7 @@
                 </div>
                 
                 <div class="form-body">
-                    <form th:action="@{/roles/create}" th:object="${role}" method="post" id="roleForm">
+                    <form th:action="@{/admin/roles/create}" th:object="${role}" method="post" id="roleForm">
                         <!-- Basic Information Section -->
                         <div class="form-section">
                             <div class="form-section-title">
@@ -301,18 +301,19 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="priority" class="form-label">
-                                            Priority Level
+                                        <label for="roleLevel" class="form-label">
+                                            Role Level
                                         </label>
-                                        <select class="form-select" id="priority">
-                                            <option value="low">Low</option>
-                                            <option value="medium" selected>Medium</option>
-                                            <option value="high">High</option>
-                                            <option value="critical">Critical</option>
+                                        <select class="form-select" id="roleLevel" name="roleLevel">
+                                            <option value="1">Level 1 (Basic)</option>
+                                            <option value="3">Level 3 (Intermediate)</option>
+                                            <option value="5" selected>Level 5 (Standard)</option>
+                                            <option value="7">Level 7 (Advanced)</option>
+                                            <option value="10">Level 10 (Admin)</option>
                                         </select>
                                         <div class="help-text">
                                             <i class="fas fa-lightbulb me-1"></i>
-                                            Higher priority roles have more system access
+                                            Higher level roles have more system access
                                         </div>
                                     </div>
                                 </div>
@@ -329,54 +330,20 @@
                             <div class="mb-3">
                                 <label class="form-label">Select Permissions</label>
                                 <div class="permission-grid">
-                                    <div class="permission-item" onclick="togglePermission(this)">
-                                        <div class="permission-title">
-                                            <i class="fas fa-eye me-2"></i>Read Access
-                                        </div>
-                                        <div class="permission-description">
-                                            View and read data within assigned scope
-                                        </div>
+                                    <div class="form-check mb-2" th:each="permission : ${availablePermissions}">
+                                        <input class="form-check-input" type="checkbox"
+                                               th:id="${'permission_' + permission}"
+                                               th:value="${permission}"
+                                               name="permissions">
+                                        <label class="form-check-label" th:for="${'permission_' + permission}">
+                                            <i class="fas fa-shield-alt me-2"></i>
+                                            <span th:text="${permission}">Permission</span>
+                                        </label>
                                     </div>
-                                    <div class="permission-item" onclick="togglePermission(this)">
-                                        <div class="permission-title">
-                                            <i class="fas fa-edit me-2"></i>Write Access
-                                        </div>
-                                        <div class="permission-description">
-                                            Create and modify data within assigned scope
-                                        </div>
-                                    </div>
-                                    <div class="permission-item" onclick="togglePermission(this)">
-                                        <div class="permission-title">
-                                            <i class="fas fa-trash me-2"></i>Delete Access
-                                        </div>
-                                        <div class="permission-description">
-                                            Remove data within assigned scope
-                                        </div>
-                                    </div>
-                                    <div class="permission-item" onclick="togglePermission(this)">
-                                        <div class="permission-title">
-                                            <i class="fas fa-users-cog me-2"></i>Manage Users
-                                        </div>
-                                        <div class="permission-description">
-                                            Add, remove, and manage user accounts
-                                        </div>
-                                    </div>
-                                    <div class="permission-item" onclick="togglePermission(this)">
-                                        <div class="permission-title">
-                                            <i class="fas fa-chart-bar me-2"></i>View Reports
-                                        </div>
-                                        <div class="permission-description">
-                                            Access and generate system reports
-                                        </div>
-                                    </div>
-                                    <div class="permission-item" onclick="togglePermission(this)">
-                                        <div class="permission-title">
-                                            <i class="fas fa-cogs me-2"></i>System Settings
-                                        </div>
-                                        <div class="permission-description">
-                                            Modify system configuration and settings
-                                        </div>
-                                    </div>
+                                </div>
+                                <div class="help-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Select the permissions this role should have
                                 </div>
                             </div>
                         </div>
@@ -386,8 +353,8 @@
                             <div class="preview-title">Role Preview</div>
                             <div>
                                 <span class="preview-badge" id="previewCategory">USER</span>
-                                <span class="preview-badge" id="previewPriority">MEDIUM</span>
-                                <span class="preview-badge" id="previewPermissions">3 Permissions</span>
+                                <span class="preview-badge" id="previewLevel">LEVEL 5</span>
+                                <span class="preview-badge" id="previewPermissions">0 Permissions</span>
                             </div>
                         </div>
 
@@ -429,7 +396,7 @@
                                 <div class="col-md-12">
                                     <div class="mb-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                            <input class="form-check-input" type="checkbox" id="active" name="active" checked>
                                             <label class="form-check-label" for="isActive">
                                                 <strong>Active Role</strong>
                                                 <span class="text-muted d-block">Users can be assigned to this role</span>
@@ -442,7 +409,7 @@
 
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between align-items-center">
-                            <a th:href="@{/roles}" class="btn btn-secondary">
+                            <a th:href="@{/admin/roles}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Cancel
                             </a>
                             <div>
@@ -484,10 +451,11 @@
         // Update role preview
         function updatePreview() {
             const category = document.getElementById('roleCategory').value;
-            const priority = document.getElementById('priority').value;
+            const roleLevel = document.getElementById('roleLevel').value;
+            const selectedPermissions = document.querySelectorAll('input[name="permissions"]:checked');
             
             document.getElementById('previewCategory').textContent = category.toUpperCase();
-            document.getElementById('previewPriority').textContent = priority.toUpperCase();
+            document.getElementById('previewLevel').textContent = 'LEVEL ' + roleLevel;
             document.getElementById('previewPermissions').textContent = selectedPermissions.length + ' Permissions';
         }
 
@@ -580,7 +548,10 @@
 
         // Update preview on form changes
         document.getElementById('roleCategory').addEventListener('change', updatePreview);
-        document.getElementById('priority').addEventListener('change', updatePreview);
+        document.getElementById('roleLevel').addEventListener('change', updatePreview);
+        document.querySelectorAll('input[name="permissions"]').forEach(checkbox => {
+            checkbox.addEventListener('change', updatePreview);
+        });
     </script>
 </body>
 </html>

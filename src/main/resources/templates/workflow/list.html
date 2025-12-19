@@ -153,10 +153,10 @@
                                 <small class="text-muted" th:text="${workflow.description}"></small>
                             </td>
                             <td>
-                                <span th:class="'badge bg-' + (${workflow.status.name() == 'ACTIVE'} ? 'success' :
-                                                               (${workflow.status.name() == 'DRAFT'} ? 'secondary' :
-                                                               (${workflow.status.name() == 'COMPLETED'} ? 'primary' :
-                                                               (${workflow.status.name() == 'SUSPENDED'} ? 'warning' : 'danger'))))"
+                                <span th:class="|badge bg-${workflow.status == T(com.workflow.workflowmanagementsystem.entity.Workflow.WorkflowStatus).ACTIVE ? 'success' :
+                                               workflow.status == T(com.workflow.workflowmanagementsystem.entity.Workflow.WorkflowStatus).DRAFT ? 'secondary' :
+                                               workflow.status == T(com.workflow.workflowmanagementsystem.entity.Workflow.WorkflowStatus).COMPLETED ? 'primary' :
+                                               workflow.status == T(com.workflow.workflowmanagementsystem.entity.Workflow.WorkflowStatus).SUSPENDED ? 'warning' : 'danger'}|"
                                       th:text="${workflow.status.displayName}"></span>
                             </td>
                             <td th:text="${workflow.department?.name ?: 'N/A'}"></td>

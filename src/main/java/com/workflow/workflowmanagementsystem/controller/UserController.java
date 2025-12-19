@@ -5,6 +5,7 @@ import com.workflow.workflowmanagementsystem.entity.Team;
 import com.workflow.workflowmanagementsystem.entity.User;
 import com.workflow.workflowmanagementsystem.entity.UserRole;
 import com.workflow.workflowmanagementsystem.service.UserService;
+import com.workflow.workflowmanagementsystem.service.TeamService;
 import com.workflow.workflowmanagementsystem.Repository.RoleRepository;
 import com.workflow.workflowmanagementsystem.Repository.TeamRepository;
 import com.workflow.workflowmanagementsystem.Repository.UserRepository;
@@ -95,7 +96,7 @@ public class UserController {
 }
 
 @Controller
-@RequestMapping("/teams")
+@RequestMapping("/admin/teams")
 class TeamAssignmentController {
 
     @Autowired
@@ -103,6 +104,9 @@ class TeamAssignmentController {
 
     @Autowired
     private TeamRepository teamRepository;
+    
+    @Autowired
+    private TeamService teamService;
 
     @GetMapping("/assign-users")
     public String showAssignUserForm(Model model) {
@@ -111,38 +115,41 @@ class TeamAssignmentController {
         return "team/assign-users";
     }
 
-    @PostMapping("/assign-users")
-    public String assignUserToTeam(@RequestParam Long userId, 
-                                  @RequestParam Long teamId,
+    @GetMapping("/assign-users/{id}")
+    public String showAssignUserFormForTeam(@PathVariable Long id, Model model) {
+        Team team = teamRepository.findById(id).orElseThrow(() -> new RuntimeException("Team not found"));
+        // Ensure the members collection is initialized
+        if (team.getMembers() == null) {
+            team.setMembers(new java.util.ArrayList<>());
+        }
+        model.addAttribute("team", team);
+        model.addAttribute("availableUsers", userRepository.findAll());
+        return "team/assign-users";
+    }
+
+    @PostMapping("/add-member/{teamId}")
+    public String assignUserToTeam(@PathVariable Long teamId,
+                                  @RequestParam Long userId,
                                   RedirectAttributes redirectAttributes) {
         try {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            Team team = teamRepository.findById(teamId)
-                    .orElseThrow(() -> new RuntimeException("Team not found"));
-            
-            user.setTeam(team);
-            userRepository.save(user);
+            teamService.addMemberToTeam(teamId, userId);
             redirectAttributes.addFlashAttribute("success", "User assigned to team successfully!");
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/teams/assign-users";
+        return "redirect:/admin/teams/assign-users/" + teamId;
     }
 
-    @GetMapping("/remove-user/{userId}")
-    public String removeUserFromTeam(@PathVariable Long userId,
-                                    RedirectAttributes redirectAttributes) {
+    @PostMapping("/remove-member/{teamId}")
+    public String removeUserFromTeam(@PathVariable Long teamId,
+                                   @RequestParam Long userId,
+                                   RedirectAttributes redirectAttributes) {
         try {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            
-            user.setTeam(null);
-            userRepository.save(user);
+            teamService.removeMemberFromTeam(teamId, userId);
             redirectAttributes.addFlashAttribute("success", "User removed from team successfully!");
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/teams/assign-users";
+        return "redirect:/admin/teams/assign-users/" + teamId;
     }
 }

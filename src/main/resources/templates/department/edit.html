@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Edit Department - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+            border-radius: 15px;
+        }
+        .form-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .form-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .form-body {
+            padding: 30px;
+        }
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .form-section-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .form-section-title i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            padding: 12px 15px;
+            transition: all 0.3s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 500;
+        }
+        .help-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .character-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Include Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-2">
+                            <i class="fas fa-edit me-3"></i>Edit Department
+                        </h1>
+                        <p class="mb-0 opacity-75">Update department information and settings</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex align-items-center justify-content-end">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span>Department ID: <span th:text="${department.id}">#001</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="form-container">
+            <div class="card form-card">
+                <div class="form-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Department Information
+                    </h4>
+                    <p class="text-muted mb-0 mt-2">Update the basic information about the department</p>
+                </div>
+                
+                <div class="form-body">
+                    <form th:action="@{/admin/departments/update/{id}(id=${department.id})}" th:object="${department}" method="post" id="departmentForm">
+                        <!-- Basic Information Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Basic Information
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">
+                                            Department Name <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="name" th:field="*{name}" required>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Enter a clear, descriptive name for the department
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="departmentCode" class="form-label">
+                                            Department Code
+                                        </label>
+                                        <input type="text" class="form-control" id="departmentCode" placeholder="e.g., IT, HR, FIN, MKT">
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Short code for easy identification (3-5 characters)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    Description
+                                </label>
+                                <textarea class="form-control" id="description" th:field="*{description}" rows="4" maxlength="500"></textarea>
+                                <div class="character-count">
+                                    <span id="charCount">0</span> / 500 characters
+                                </div>
+                                <div class="help-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Describe the department's purpose and main responsibilities
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Organization Structure Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-sitemap"></i>
+                                Organization Structure
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="headOfDepartment" class="form-label">
+                                            Head of Department
+                                        </label>
+                                        <select class="form-select" id="headOfDepartment">
+                                            <option value="">Select Head of Department</option>
+                                            <!-- Options will be populated dynamically -->
+                                            <option value="1">John Doe</option>
+                                            <option value="2">Jane Smith</option>
+                                        </select>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Assign a department head who will manage this department
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="parentDepartment" class="form-label">
+                                            Parent Department
+                                        </label>
+                                        <select class="form-select" id="parentDepartment">
+                                            <option value="">None (Root Department)</option>
+                                            <!-- Options will be populated dynamically -->
+                                            <option value="1">Executive</option>
+                                            <option value="2">Operations</option>
+                                        </select>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Select if this is a sub-department
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Settings Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-cog"></i>
+                                Additional Settings
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="budget" class="form-label">
+                                            Annual Budget
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" id="budget" placeholder="0.00">
+                                        </div>
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Set the annual budget for this department
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="location" class="form-label">
+                                            Primary Location
+                                        </label>
+                                        <input type="text" class="form-control" id="location" placeholder="e.g., Building A, Floor 3">
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Main office location for this department
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="departmentEmail" class="form-label">
+                                            Department Email
+                                        </label>
+                                        <input type="email" class="form-control" id="departmentEmail" placeholder="department@company.com">
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Official email address for department communications
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="departmentPhone" class="form-label">
+                                            Department Phone
+                                        </label>
+                                        <input type="tel" class="form-control" id="departmentPhone" placeholder="+1 (555) 123-4567">
+                                        <div class="help-text">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            Main contact number for the department
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a th:href="@{/admin/departments/view/{id}(id=${department.id})}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary me-2" onclick="saveAsDraft()">
+                                    <i class="fas fa-save me-2"></i>Save as Draft
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-check me-2"></i>Update Department
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Character counter for description
+        document.getElementById('description').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.getElementById('charCount').textContent = charCount;
+            
+            if (charCount > 450) {
+                document.getElementById('charCount').style.color = '#dc3545';
+            } else if (charCount > 400) {
+                document.getElementById('charCount').style.color = '#ffc107';
+            } else {
+                document.getElementById('charCount').style.color = '#6c757d';
+            }
+        });
+
+        // Initialize character count on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const description = document.getElementById('description');
+            if (description) {
+                document.getElementById('charCount').textContent = description.value.length;
+            }
+        });
+
+        // Form validation
+        document.getElementById('departmentForm').addEventListener('submit', function(e) {
+            const name = document.getElementById('name').value.trim();
+            
+            if (!name) {
+                e.preventDefault();
+                alert('Please enter a department name');
+                return false;
+            }
+            
+            if (name.length < 2) {
+                e.preventDefault();
+                alert('Department name must be at least 2 characters long');
+                return false;
+            }
+            
+            return true;
+        });
+
+        // Save as draft function
+        function saveAsDraft() {
+            // Implement draft saving logic
+            const formData = new FormData(document.getElementById('departmentForm'));
+            const data = Object.fromEntries(formData);
+            
+            // Save to localStorage or send to server as draft
+            localStorage.setItem('departmentDraft', JSON.stringify(data));
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-info alert-dismissible fade show';
+            alert.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                Department draft saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.form-container').insertBefore(alert, document.querySelector('.form-card'));
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
