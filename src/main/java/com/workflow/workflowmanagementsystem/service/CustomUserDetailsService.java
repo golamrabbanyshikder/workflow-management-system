@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,8 +34,25 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     private Collection<? extends GrantedAuthority> getAuthorities(User user) {
-        return user.getUserRoles().stream()
-                .map(userRole -> new SimpleGrantedAuthority(userRole.getRole().getName()))
-                .collect(Collectors.toList());
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        
+        user.getUserRoles().stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .forEach(userRole -> {
+                    String roleName = userRole.getRole().getName();
+                    
+                    // Always add the role name as-is (for backward compatibility)
+                    authorities.add(new SimpleGrantedAuthority(roleName));
+                    
+                    // Also add with ROLE_ prefix if not present (for Spring Security)
+                    if (!roleName.startsWith("ROLE_")) {
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
+                    } else {
+                        // Also add without ROLE_ prefix for UI compatibility
+                        authorities.add(new SimpleGrantedAuthority(roleName.substring(5)));
+                    }
+                });
+        
+        return authorities;
     }
 }

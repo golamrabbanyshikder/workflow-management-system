@@ -82,9 +82,10 @@
                                         <label for="assignedTo" class="form-label">Assigned To</label>
                                         <select class="form-select" id="assignedTo" th:field="*{assignedTo.id}">
                                             <option value="">Select User</option>
-                                            <!-- This would need to be populated with actual users -->
-                                            <option value="1">User 1</option>
-                                            <option value="2">User 2</option>
+                                            <option th:each="user : ${users}"
+                                                    th:value="${user.id}"
+                                                    th:text="${user.firstName + ' ' + user.lastName + ' (' + user.username + ')'}"
+                                                    th:selected="${task.assignedTo != null and task.assignedTo.id == user.id}"></option>
                                         </select>
                                     </div>
                                 </div>
@@ -156,8 +157,9 @@
                                 <form th:action="@{/tasks/assign/{id}(id=${task.id})}" method="post" class="d-flex">
                                     <select name="assignedToId" class="form-select me-2" required>
                                         <option value="">Assign to...</option>
-                                        <option value="1">User 1</option>
-                                        <option value="2">User 2</option>
+                                        <option th:each="user : ${users}"
+                                                th:value="${user.id}"
+                                                th:text="${user.firstName + ' ' + user.lastName + ' (' + user.username + ')'}"></option>
                                     </select>
                                     <button type="submit" class="btn btn-primary">Assign</button>
                                 </form>

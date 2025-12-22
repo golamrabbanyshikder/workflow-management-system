@@ -35,27 +35,30 @@
                                     <label for="actionType" class="form-label">Action Type</label>
                                     <select class="form-select" id="actionType" name="actionType">
                                         <option value="">All Actions</option>
-                                        <option th:each="action : ${actionTypes}" 
-                                                th:value="${action}" 
-                                                th:text="${action}"></option>
+                                        <option th:each="action : ${actionTypes}"
+                                                th:value="${action}"
+                                                th:text="${action}"
+                                                th:selected="${action == selectedActionType}"></option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
                                     <label for="entityType" class="form-label">Entity Type</label>
                                     <select class="form-select" id="entityType" name="entityType">
                                         <option value="">All Entities</option>
-                                        <option th:each="entity : ${entityTypes}" 
-                                                th:value="${entity}" 
-                                                th:text="${entity}"></option>
+                                        <option th:each="entity : ${entityTypes}"
+                                                th:value="${entity}"
+                                                th:text="${entity}"
+                                                th:selected="${entity == selectedEntityType}"></option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
                                     <label for="user" class="form-label">User</label>
                                     <select class="form-select" id="user" name="userId">
                                         <option value="">All Users</option>
-                                        <option th:each="user : ${users}" 
-                                                th:value="${user.id}" 
-                                                th:text="${user.username}"></option>
+                                        <option th:each="user : ${users}"
+                                                th:value="${user.id}"
+                                                th:text="${user.username}"
+                                                th:selected="${user.id == selectedUserId}"></option>
                                     </select>
                                 </div>
                                 <div class="col-md-3 d-flex align-items-end">
@@ -88,9 +91,9 @@
                                     <tr th:each="log : ${auditLogs}">
                                         <td th:text="${#temporals.format(log.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 12:00</td>
                                         <td>
-                                            <span class="badge" 
-                                                  th:class="'badge-' + ${log.actionType.toLowerCase()}"
-                                                  th:text="${log.actionType}">Action</span>
+                                            <span class="badge"
+                                                  th:class="'badge-' + ${log.actionType.name().toLowerCase()}"
+                                                  th:text="${log.actionType.displayName}">Action</span>
                                         </td>
                                         <td th:text="${log.entityType}">Entity Type</td>
                                         <td th:text="${log.description}">Description</td>

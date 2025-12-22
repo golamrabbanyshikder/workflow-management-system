@@ -5,12 +5,14 @@ import com.workflow.workflowmanagementsystem.Repository.DepartmentRepository;
 import com.workflow.workflowmanagementsystem.Repository.RoleRepository;
 import com.workflow.workflowmanagementsystem.Repository.TeamRepository;
 import com.workflow.workflowmanagementsystem.Repository.UserRepository;
+import com.workflow.workflowmanagementsystem.Repository.UserRoleRepository;
 import com.workflow.workflowmanagementsystem.entity.AuditLog;
 import com.workflow.workflowmanagementsystem.entity.Department;
 import com.workflow.workflowmanagementsystem.entity.User;
 import com.workflow.workflowmanagementsystem.service.DepartmentService;
 import com.workflow.workflowmanagementsystem.service.TaskService;
 import com.workflow.workflowmanagementsystem.service.WorkflowService;
+import com.workflow.workflowmanagementsystem.util.RoleUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/dashboard")
 public class DashboardController {
-    
+/*
     // Error page handler
     @GetMapping("/error")
     public String handleError(HttpServletRequest request, Model model) {
@@ -40,7 +42,7 @@ public class DashboardController {
         
         model.addAttribute("error", error);
         return "error";
-    }
+    }*/
     
     @Autowired
     private WorkflowService workflowService;
@@ -66,13 +68,16 @@ public class DashboardController {
     @Autowired
     private DepartmentService departmentService;
     
+    @Autowired
+    private UserRoleRepository userRoleRepository;
+    
     // Main dashboard page
     @GetMapping({"", "/"})
-    public String dashboard(Model model) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public String dashboard(Model model, HttpServletRequest request) {
+        User user = RoleUtil.getCurrentUser(userRepository);
+        
+        // Set user roles in session
+        RoleUtil.setUserRolesInSession(user, userRoleRepository, request);
 
         // Get basic statistics for dashboard
         Map<String, Long> stats = new HashMap<>();
@@ -140,8 +145,7 @@ public class DashboardController {
         String username = auth.getName();
         
         // Get current user from database
-        User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        User currentUser = RoleUtil.getCurrentUser(userRepository);
         
         // Get recent audit logs for the current user (last 24 hours)
         LocalDateTime since = LocalDateTime.now().minusDays(1);

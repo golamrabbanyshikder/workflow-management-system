@@ -43,24 +43,28 @@ public class UserRoleService {
     
     public List<UserRole> getActiveUserRoles() {
         return userRoleRepository.findAll().stream()
-                .filter(UserRole::isActive)
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
                 .collect(java.util.stream.Collectors.toList());
     }
 
     public List<UserRole> getUserRolesByUserId(Long userId) {
-        return userRoleRepository.findByUserId(userId);
+        return userRoleRepository.findByIdUserId(userId);
     }
     
     public List<UserRole> getActiveUserRolesByUserId(Long userId) {
-        return userRoleRepository.findByUserIdAndActive(userId, true);
+        return userRoleRepository.findByIdUserId(userId).stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public List<UserRole> getUserRolesByRoleId(Long roleId) {
-        return userRoleRepository.findByRoleId(roleId);
+        return userRoleRepository.findByIdRoleId(roleId);
     }
     
     public List<UserRole> getActiveUserRolesByRoleId(Long roleId) {
-        return userRoleRepository.findByRoleIdAndActive(roleId, true);
+        return userRoleRepository.findByIdRoleId(roleId).stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public List<UserRole> getUserRolesByDepartmentId(Long departmentId) {
@@ -68,7 +72,9 @@ public class UserRoleService {
     }
     
     public List<UserRole> getActiveUserRolesByDepartmentId(Long departmentId) {
-        return userRoleRepository.findByDepartmentIdAndActive(departmentId, true);
+        return userRoleRepository.findByDepartmentId(departmentId).stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public List<UserRole> getUserRolesByTeamId(Long teamId) {
@@ -76,39 +82,71 @@ public class UserRoleService {
     }
     
     public List<UserRole> getActiveUserRolesByTeamId(Long teamId) {
-        return userRoleRepository.findByTeamIdAndActive(teamId, true);
+        return userRoleRepository.findByTeamId(teamId).stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .collect(java.util.stream.Collectors.toList());
     }
     
     public Optional<UserRole> getUserRole(Long userId, Long roleId) {
-        return userRoleRepository.findActiveUserRole(userId, roleId);
+        return userRoleRepository.findByIdUserId(userId).stream()
+                .filter(ur -> ur.getRole().getId().equals(roleId))
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .findFirst();
     }
     
     public Optional<UserRole> getUserRoleByUserDepartmentTeam(Long userId, Long departmentId, Long teamId) {
-        return userRoleRepository.findActiveUserRoleByUserDepartmentTeam(userId, departmentId, teamId);
+        return userRoleRepository.findByIdUserId(userId).stream()
+                .filter(ur -> {
+                    boolean deptMatch = (departmentId == null) ||
+                            (ur.getDepartment() != null && ur.getDepartment().getId().equals(departmentId));
+                    boolean teamMatch = (teamId == null) ||
+                            (ur.getTeam() != null && ur.getTeam().getId().equals(teamId));
+                    return deptMatch && teamMatch;
+                })
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .findFirst();
     }
     
     public Long getUserCountByRoleId(Long roleId) {
-        return userRoleRepository.countActiveUsersByRoleId(roleId);
+        return userRoleRepository.findByIdRoleId(roleId).stream()
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .count();
     }
     
     public Long getUserCountByDepartmentId(Long departmentId) {
-        return userRoleRepository.countActiveUsersByDepartmentId(departmentId);
+        return userRoleRepository.findByDepartmentId(departmentId).stream()
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .count();
     }
     
     public Long getUserCountByTeamId(Long teamId) {
-        return userRoleRepository.countActiveUsersByTeamId(teamId);
+        return userRoleRepository.findByTeamId(teamId).stream()
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .count();
     }
     
     public List<Long> getUserIdsByRoleId(Long roleId) {
-        return userRoleRepository.findActiveUserIdsByRoleId(roleId);
+        return userRoleRepository.findByIdRoleId(roleId).stream()
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .map(ur -> ur.getUser().getId())
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
     }
     
     public List<Long> getUserIdsByDepartmentId(Long departmentId) {
-        return userRoleRepository.findActiveUserIdsByDepartmentId(departmentId);
+        return userRoleRepository.findByDepartmentId(departmentId).stream()
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .map(ur -> ur.getUser().getId())
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
     }
     
     public List<Long> getUserIdsByTeamId(Long teamId) {
-        return userRoleRepository.findActiveUserIdsByTeamId(teamId);
+        return userRoleRepository.findByTeamId(teamId).stream()
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .map(ur -> ur.getUser().getId())
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public UserRole assignRoleToUser(Long userId, Long roleId, Long departmentId, Long teamId, Long assignedBy) {
@@ -131,7 +169,10 @@ public class UserRoleService {
         }
         
         // Check if user already has this role assignment
-        Optional<UserRole> existingUserRole = userRoleRepository.findActiveUserRole(userId, roleId);
+        Optional<UserRole> existingUserRole = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(ur -> ur.getRole().getId().equals(roleId))
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .findFirst();
         if (existingUserRole.isPresent()) {
             throw new RuntimeException("User already has this role assigned");
         }
@@ -157,7 +198,14 @@ public class UserRoleService {
                 .orElseThrow(() -> new RuntimeException("Team not found with id: " + teamId));
         
         // Check if user already has this role in the same context
-        Optional<UserRole> existingUserRole = userRoleRepository.findActiveUserRoleByUserDepartmentTeam(userId, departmentId, teamId);
+        Optional<UserRole> existingUserRole = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(ur -> {
+                    boolean deptMatch = ur.getDepartment() != null && ur.getDepartment().getId().equals(departmentId);
+                    boolean teamMatch = ur.getTeam() != null && ur.getTeam().getId().equals(teamId);
+                    return deptMatch && teamMatch;
+                })
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .findFirst();
         if (existingUserRole.isPresent()) {
             throw new RuntimeException("User already has a role assigned in this department and team context");
         }
@@ -176,7 +224,10 @@ public class UserRoleService {
     }
 
     public UserRole updateUserRole(Long userId, Long roleId, Long newRoleId, Long departmentId, Long teamId, Long assignedBy) {
-        UserRole userRole = userRoleRepository.findActiveUserRole(userId, roleId)
+        UserRole userRoleToUpdate = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(ur -> ur.getRole().getId().equals(roleId))
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .findFirst()
                 .orElseThrow(() -> new RuntimeException("User role assignment not found"));
         
         Role newRole = roleRepository.findById(newRoleId)
@@ -194,41 +245,49 @@ public class UserRoleService {
                     .orElseThrow(() -> new RuntimeException("Team not found with id: " + teamId));
         }
         
-        userRole.setRole(newRole);
-        userRole.setDepartment(department);
-        userRole.setTeam(team);
-        userRole.setAssignedBy(assignedBy);
-        userRole.setAssignedAt(LocalDateTime.now());
+        userRoleToUpdate.setRole(newRole);
+        userRoleToUpdate.setDepartment(department);
+        userRoleToUpdate.setTeam(team);
+        userRoleToUpdate.setAssignedBy(assignedBy);
+        userRoleToUpdate.setAssignedAt(LocalDateTime.now());
         
         // Update user's team if team is assigned
-        User user = userRole.getUser();
+        User user = userRoleToUpdate.getUser();
         if (team != null) {
             user.setTeam(team);
             userRepository.save(user);
         }
         
-        return userRoleRepository.save(userRole);
+        return userRoleRepository.save(userRoleToUpdate);
     }
     
     public UserRole updateUserRoleStatus(Long userId, Long roleId, Boolean active) {
-        UserRole userRole = userRoleRepository.findActiveUserRole(userId, roleId)
+        UserRole userRoleToUpdate = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(ur -> ur.getRole().getId().equals(roleId))
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .findFirst()
                 .orElseThrow(() -> new RuntimeException("User role assignment not found"));
         
-        userRole.setActive(active);
+        userRoleToUpdate.setActive(active);
         
-        return userRoleRepository.save(userRole);
+        return userRoleRepository.save(userRoleToUpdate);
     }
 
     public void removeRoleFromUser(Long userId, Long roleId) {
-        UserRole userRole = userRoleRepository.findActiveUserRole(userId, roleId)
+        UserRole userRoleToUpdate = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(ur -> ur.getRole().getId().equals(roleId))
+                .filter(ur -> ur.isActive() == null || ur.isActive())
+                .findFirst()
                 .orElseThrow(() -> new RuntimeException("User role assignment not found"));
         
-        userRole.setActive(false);
-        userRoleRepository.save(userRole);
+        userRoleToUpdate.setActive(false);
+        userRoleRepository.save(userRoleToUpdate);
     }
     
     public void removeUserFromTeam(Long userId, Long teamId) {
-        List<UserRole> userRoles = userRoleRepository.findByUserIdAndActive(userId, true);
+        List<UserRole> userRoles = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .collect(java.util.stream.Collectors.toList());
         
         for (UserRole userRole : userRoles) {
             if (userRole.getTeam() != null && userRole.getTeam().getId().equals(teamId)) {
@@ -245,7 +304,9 @@ public class UserRoleService {
     }
     
     public void removeUserFromDepartment(Long userId, Long departmentId) {
-        List<UserRole> userRoles = userRoleRepository.findByUserIdAndActive(userId, true);
+        List<UserRole> userRoles = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .collect(java.util.stream.Collectors.toList());
         
         for (UserRole userRole : userRoles) {
             if (userRole.getDepartment() != null && userRole.getDepartment().getId().equals(departmentId)) {
@@ -256,7 +317,9 @@ public class UserRoleService {
     }
     
     public void transferUserToNewTeam(Long userId, Long oldTeamId, Long newTeamId, Long assignedBy) {
-        List<UserRole> userRoles = userRoleRepository.findByUserIdAndActive(userId, true);
+        List<UserRole> userRoles = userRoleRepository.findByIdUserId(userId).stream()
+                .filter(userRole -> userRole.isActive() == null || userRole.isActive())
+                .collect(java.util.stream.Collectors.toList());
         
         for (UserRole userRole : userRoles) {
             if (userRole.getTeam() != null && userRole.getTeam().getId().equals(oldTeamId)) {

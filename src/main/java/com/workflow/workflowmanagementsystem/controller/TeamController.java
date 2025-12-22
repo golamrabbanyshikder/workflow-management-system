@@ -1,11 +1,15 @@
 package com.workflow.workflowmanagementsystem.controller;
 
+import com.workflow.workflowmanagementsystem.Repository.UserRoleRepository;
 import com.workflow.workflowmanagementsystem.entity.Department;
 import com.workflow.workflowmanagementsystem.entity.Team;
 import com.workflow.workflowmanagementsystem.entity.User;
+import com.workflow.workflowmanagementsystem.Repository.UserRepository;
 import com.workflow.workflowmanagementsystem.service.DepartmentService;
 import com.workflow.workflowmanagementsystem.service.TeamService;
 import com.workflow.workflowmanagementsystem.service.UserService;
+import com.workflow.workflowmanagementsystem.util.RoleUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,9 +30,19 @@ public class TeamController {
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private UserRoleRepository userRoleRepository;
 
     @GetMapping
-    public String listTeams(Model model) {
+    public String listTeams(Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = RoleUtil.getCurrentUser(userRepository);
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
+        
         model.addAttribute("teams", teamService.getAllTeams());
         model.addAttribute("departments", departmentService.getAllDepartments());
         return "team/list";
@@ -71,7 +85,11 @@ public class TeamController {
     }
 
     @GetMapping("/create")
-    public String showCreateForm(Model model) {
+    public String showCreateForm(Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = RoleUtil.getCurrentUser(userRepository);
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
+        
         model.addAttribute("team", new Team());
         model.addAttribute("departments", departmentService.getAllDepartments());
         model.addAttribute("users", userService.getAllUsers());
@@ -102,7 +120,11 @@ public class TeamController {
     }
 
     @GetMapping("/edit/{id}")
-    public String showEditForm(@PathVariable Long id, Model model) {
+    public String showEditForm(@PathVariable Long id, Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = RoleUtil.getCurrentUser(userRepository);
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
+        
         Team team = teamService.getTeamById(id)
                 .orElseThrow(() -> new RuntimeException("Team not found"));
         model.addAttribute("team", team);
@@ -163,7 +185,11 @@ public class TeamController {
     
     
     @GetMapping("/view/{id}")
-    public String viewTeam(@PathVariable Long id, Model model) {
+    public String viewTeam(@PathVariable Long id, Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = RoleUtil.getCurrentUser(userRepository);
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
+        
         Team team = teamService.getTeamById(id)
                 .orElseThrow(() -> new RuntimeException("Team not found"));
         

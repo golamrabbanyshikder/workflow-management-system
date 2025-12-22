@@ -35,18 +35,20 @@
                                     <label for="userId" class="form-label">User</label>
                                     <select class="form-select" id="userId" name="userId">
                                         <option value="">All Users</option>
-                                        <option th:each="user : ${users}" 
-                                                th:value="${user.id}" 
-                                                th:text="${user.displayName}"></option>
+                                        <option th:each="user : ${users}"
+                                                th:value="${user.id}"
+                                                th:text="${user.displayName}"
+                                                th:selected="${user.id != null and user.id == selectedUserId}"></option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="department" class="form-label">Department</label>
                                     <select class="form-select" id="department" name="departmentId">
                                         <option value="">All Departments</option>
-                                        <option th:each="dept : ${departments}" 
-                                                th:value="${dept.id}" 
-                                                th:text="${dept.name}"></option>
+                                        <option th:each="dept : ${departments}"
+                                                th:value="${dept.id}"
+                                                th:text="${dept.name}"
+                                                th:selected="${dept.id != null and dept.id == selectedDepartmentId}"></option>
                                     </select>
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">

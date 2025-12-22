@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,18 +36,20 @@
                                     <label for="status" class="form-label">Status</label>
                                     <select class="form-select" id="status" name="status">
                                         <option value="">All Status</option>
-                                        <option th:each="status : ${statusOptions}" 
-                                                th:value="${status}" 
-                                                th:text="${status}"></option>
+                                        <option th:each="status : ${statusOptions}"
+                                                th:value="${status}"
+                                                th:text="${status}"
+                                                th:selected="${status == selectedStatus}"></option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="department" class="form-label">Department</label>
                                     <select class="form-select" id="department" name="departmentId">
                                         <option value="">All Departments</option>
-                                        <option th:each="dept : ${departments}" 
-                                                th:value="${dept.id}" 
-                                                th:text="${dept.name}"></option>
+                                        <option th:each="dept : ${departments}"
+                                                th:value="${dept.id}"
+                                                th:text="${dept.name}"
+                                                th:selected="${dept.id != null and dept.id == selectedDepartmentId}"></option>
                                     </select>
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
@@ -91,14 +94,14 @@
                                     <tr th:each="workflow : ${workflowReportData.workflows}">
                                         <td th:text="${workflow.name}">Workflow Name</td>
                                         <td>
-                                            <span class="badge" 
-                                                  th:class="'badge-' + ${workflow.status.toLowerCase()}"
+                                            <span class="badge"
+                                                  th:class="'badge-' + ${workflow.status.toLowerCase().replace(' ', '-')}"
                                                   th:text="${workflow.status}">Status</span>
                                         </td>
                                         <td th:text="${workflow.department}">Department</td>
                                         <td th:text="${workflow.createdBy}">Created By</td>
                                         <td th:text="${workflow.createdAt}">Created Date</td>
-                                        <td th:text="${workflow.taskCount}">Task Count</td>
+                                        <td th:text="${workflow.taskCount != null ? workflow.taskCount : 0}">Task Count</td>
                                     </tr>
                                 </tbody>
                             </table>

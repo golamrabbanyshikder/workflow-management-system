@@ -9,6 +9,9 @@ import com.workflow.workflowmanagementsystem.service.TeamService;
 import com.workflow.workflowmanagementsystem.Repository.RoleRepository;
 import com.workflow.workflowmanagementsystem.Repository.TeamRepository;
 import com.workflow.workflowmanagementsystem.Repository.UserRepository;
+import com.workflow.workflowmanagementsystem.Repository.UserRoleRepository;
+import com.workflow.workflowmanagementsystem.util.RoleUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,15 +36,28 @@ public class UserController {
 
     @Autowired
     private TeamRepository teamRepository;
+    @Autowired
+    private UserRoleRepository userRoleRepository ;
+
+    @Autowired
+    private RoleUtil roleUtil;
 
     @GetMapping
-    public String listUsers(Model model) {
+    public String listUsers(Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = roleUtil.getCurrentUser(userRepository);
+        roleUtil.setUserRolesInSession(currentUser,userRoleRepository, request);
+        
         model.addAttribute("users", userRepository.findAll());
         return "user/list";
     }
 
     @GetMapping("/assign-roles")
-    public String showAssignRoleForm(Model model) {
+    public String showAssignRoleForm(Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = roleUtil.getCurrentUser(userRepository);
+        roleUtil.setUserRolesInSession(currentUser,userRoleRepository, request);
+        
         model.addAttribute("users", userRepository.findAll());
         model.addAttribute("roles", roleRepository.findAll());
         return "user/assign-roles";
@@ -57,8 +73,9 @@ public class UserController {
             Role role = roleRepository.findById(roleId)
                     .orElseThrow(() -> new RuntimeException("Role not found"));
             
-            // Check if user already has this role
+            // Check if user already has this role (considering active status)
             boolean hasRole = user.getUserRoles().stream()
+                    .filter(ur -> ur.isActive() == null || ur.isActive())
                     .anyMatch(ur -> ur.getRole().getId().equals(roleId));
             
             if (!hasRole) {
@@ -103,20 +120,33 @@ class TeamAssignmentController {
     private UserRepository userRepository;
 
     @Autowired
+    private UserRoleRepository userRoleRepository ;
+
+    @Autowired
     private TeamRepository teamRepository;
     
     @Autowired
     private TeamService teamService;
+    @Autowired
+    private RoleUtil roleUtil;
 
     @GetMapping("/assign-users")
-    public String showAssignUserForm(Model model) {
+    public String showAssignUserForm(Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = roleUtil.getCurrentUser(userRepository);
+        roleUtil.setUserRolesInSession(currentUser,userRoleRepository, request);
+        
         model.addAttribute("users", userRepository.findAll());
         model.addAttribute("teams", teamRepository.findAll());
         return "team/assign-users";
     }
 
     @GetMapping("/assign-users/{id}")
-    public String showAssignUserFormForTeam(@PathVariable Long id, Model model) {
+    public String showAssignUserFormForTeam(@PathVariable Long id, Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = roleUtil.getCurrentUser(userRepository);
+        roleUtil.setUserRolesInSession(currentUser,userRoleRepository, request);
+        
         Team team = teamRepository.findById(id).orElseThrow(() -> new RuntimeException("Team not found"));
         // Ensure the members collection is initialized
         if (team.getMembers() == null) {

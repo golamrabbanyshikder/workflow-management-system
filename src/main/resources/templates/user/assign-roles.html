@@ -30,7 +30,7 @@
                         </div>
                         
                         <!-- Assign Role Form -->
-                        <div class="card mb-4">
+                        <div th:if="${session.userRole != null and (session.userRole.contains('CEO') or session.userRole.contains('DEPARTMENT_HEAD'))}" class="card mb-4">
                             <div class="card-header">
                                 <h5 class="mb-0">Assign New Role</h5>
                             </div>
@@ -41,8 +41,8 @@
                                             <label for="userId" class="form-label">Select User</label>
                                             <select id="userId" name="userId" class="form-select" required>
                                                 <option value="">Choose User</option>
-                                                <option th:each="user : ${users}" 
-                                                        th:value="${user.id}" 
+                                                <option th:each="user : ${users}"
+                                                        th:value="${user.id}"
                                                         th:text="${user.firstName + ' ' + user.lastName + ' (' + user.username + ')'}">
                                                     User Name
                                                 </option>
@@ -52,8 +52,8 @@
                                             <label for="roleId" class="form-label">Select Role</label>
                                             <select id="roleId" name="roleId" class="form-select" required>
                                                 <option value="">Choose Role</option>
-                                                <option th:each="role : ${roles}" 
-                                                        th:value="${role.id}" 
+                                                <option th:each="role : ${roles}"
+                                                        th:value="${role.id}"
                                                         th:text="${role.name}">
                                                     Role Name
                                                 </option>
@@ -93,7 +93,8 @@
                                                     <span th:each="userRole : ${user.userRoles}" 
                                                           class="badge bg-info me-1">
                                                         <span th:text="${userRole.role.name}">ROLE</span>
-                                                        <a th:href="@{/users/remove-role/{userId}/{roleId}(userId=${user.id}, roleId=${userRole.role.id})}" 
+                                                        <a th:if="${session.userRole != null and (session.userRole.contains('CEO') or session.userRole.contains('DEPARTMENT_HEAD'))}"
+                                                           th:href="@{/users/remove-role/{userId}/{roleId}(userId=${user.id}, roleId=${userRole.role.id})}"
                                                            class="text-white ms-1"
                                                            onclick="return confirm('Are you sure you want to remove this role?')">
                                                             <i class="fas fa-times"></i>
@@ -102,7 +103,8 @@
                                                     <span th:if="${user.userRoles.empty}" class="text-muted">No roles assigned</span>
                                                 </td>
                                                 <td>
-                                                    <a th:href="@{/users/assign-roles}" class="btn btn-sm btn-outline-primary">
+                                                    <a th:if="${session.userRole != null and (session.userRole.contains('CEO') or session.userRole.contains('DEPARTMENT_HEAD'))}"
+                                                       th:href="@{/users/assign-roles}" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-plus me-1"></i>Add Role
                                                     </a>
                                                 </td>

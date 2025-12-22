@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Lifecycle - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .lifecycle-stage {
+            position: relative;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .lifecycle-stage.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .lifecycle-stage.completed {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: white;
+        }
+        
+        .lifecycle-stage.pending {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+        
+        .lifecycle-stage.on-hold {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+        
+        .lifecycle-stage.cancelled {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: #333;
+        }
+        
+        .lifecycle-arrow {
+            text-align: center;
+            font-size: 24px;
+            color: #6c757d;
+            margin: 10px 0;
+        }
+        
+        .task-info-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .progress-indicator {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+        
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: #e9ecef;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin: 30px 0;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 4px solid white;
+            box-shadow: 0 0 0 4px #e9ecef;
+        }
+        
+        .timeline-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 45%;
+            margin-left: auto;
+        }
+        
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-left: 0;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header}"></div>
+    
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-project-diagram me-2"></i>Task Lifecycle View</h2>
+                    <a th:href="@{/tasks/view/{id}(id=${task.id})}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Task
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Task Information -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="task-info-card">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h3 th:text="${task.title}">Task Title</h3>
+                            <p class="text-muted mb-3" th:text="${task.description}">Task description...</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong><i class="fas fa-project-diagram me-2"></i>Workflow:</strong> 
+                                        <span th:text="${task.workflow.name}">Workflow Name</span></p>
+                                    <p><strong><i class="fas fa-user me-2"></i>Assigned To:</strong> 
+                                        <span th:text="${task.assignedTo != null ? task.assignedTo.username : 'Unassigned'}">Assigned User</span></p>
+                                    <p><strong><i class="fas fa-calendar me-2"></i>Due Date:</strong> 
+                                        <span th:text="${#temporals.format(task.dueDate, 'yyyy-MM-dd HH:mm')}">Due Date</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong><i class="fas fa-flag me-2"></i>Priority:</strong> 
+                                        <span th:class="|badge ${task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).URGENT ? 'bg-danger' :
+                                                       task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).HIGH ? 'bg-warning' :
+                                                       task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).MEDIUM ? 'bg-info' : 'bg-secondary'}|"
+                                              th:text="${task.priority.displayName}"></span></p>
+                                    <p><strong><i class="fas fa-clock me-2"></i>Created:</strong> 
+                                        <span th:text="${#temporals.format(task.createdAt, 'yyyy-MM-dd HH:mm')}">Created Date</span></p>
+                                    <p th:if="${task.completedAt}"><strong><i class="fas fa-check-circle me-2"></i>Completed:</strong> 
+                                        <span th:text="${#temporals.format(task.completedAt, 'yyyy-MM-dd HH:mm')}">Completed Date</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="status-icon">
+                                <i th:class="|fas ${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'fa-check-circle text-success' :
+                                              task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 'fa-spinner text-primary' :
+                                              task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 'fa-clock text-warning' :
+                                              task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 'fa-pause-circle text-info' : 'fa-times-circle text-danger'}|"></i>
+                            </div>
+                            <h4 th:text="${task.status.displayName}" class="mb-3">Current Status</h4>
+                            <div class="progress-indicator">
+                                <div class="progress-bar" th:style="'width: ' + ${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 100 : 
+                                                                                task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 60 :
+                                                                                task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 25 :
+                                                                                task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 40 : 0} + '%'"></div>
+                            </div>
+                            <small class="text-muted">Progress: <span th:text="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 100 : 
+                                                                                   task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 60 :
+                                                                                   task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 25 :
+                                                                                   task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 40 : 0}">0</span>%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lifecycle Stages -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h3 class="mb-4"><i class="fas fa-route me-2"></i>Task Lifecycle Stages</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-success' : 'bg-secondary'}"></div>
+                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 'active' : 'completed'}">
+                            <h5><i class="fas fa-clock me-2"></i>Pending</h5>
+                            <p>Task has been created and is waiting to be started.</p>
+                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING}">Current Stage</small>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-primary' : 'bg-secondary'}"></div>
+                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 'active' : task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'completed' : 'pending'}">
+                            <h5><i class="fas fa-spinner me-2"></i>In Progress</h5>
+                            <p>Task is currently being worked on by the assigned user.</p>
+                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS}">Current Stage</small>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-info' : 'bg-secondary'}"></div>
+                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 'active' : task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'completed' : 'pending'}">
+                            <h5><i class="fas fa-pause-circle me-2"></i>On Hold</h5>
+                            <p>Task has been temporarily paused due to dependencies or blockers.</p>
+                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD}">Current Stage</small>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-success' : 'bg-secondary'}"></div>
+                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'active' : 'pending'}">
+                            <h5><i class="fas fa-check-circle me-2"></i>Completed</h5>
+                            <p>Task has been successfully finished and marked as complete.</p>
+                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED}">Current Stage</small>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).CANCELLED ? 'bg-danger' : 'bg-secondary'}"></div>
+                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).CANCELLED ? 'active' : 'pending'}">
+                            <h5><i class="fas fa-times-circle me-2"></i>Cancelled</h5>
+                            <p>Task has been cancelled and will not be completed.</p>
+                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).CANCELLED}">Current Stage</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Statistics -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h3 class="mb-4"><i class="fas fa-chart-bar me-2"></i>System Overview</h3>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card">
+                            <h4 class="text-primary" th:text="${totalTasks}">0</h4>
+                            <p class="mb-0">Total Tasks</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card">
+                            <h4 class="text-success" th:text="${completedTasks}">0</h4>
+                            <p class="mb-0">Completed</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card">
+                            <h4 class="text-info" th:text="${inProgressTasks}">0</h4>
+                            <p class="mb-0">In Progress</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card">
+                            <h4 class="text-danger" th:text="${overdueTasks}">0</h4>
+                            <p class="mb-0">Overdue</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

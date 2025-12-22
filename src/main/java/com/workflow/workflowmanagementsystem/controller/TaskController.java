@@ -1,6 +1,7 @@
 package com.workflow.workflowmanagementsystem.controller;
 
 import com.workflow.workflowmanagementsystem.Repository.UserRepository;
+import com.workflow.workflowmanagementsystem.Repository.UserRoleRepository;
 import com.workflow.workflowmanagementsystem.entity.Task;
 import com.workflow.workflowmanagementsystem.entity.Task.TaskPriority;
 import com.workflow.workflowmanagementsystem.entity.Task.TaskStatus;
@@ -9,6 +10,7 @@ import com.workflow.workflowmanagementsystem.entity.Workflow;
 import com.workflow.workflowmanagementsystem.service.TaskService;
 import com.workflow.workflowmanagementsystem.service.UserService;
 import com.workflow.workflowmanagementsystem.service.WorkflowService;
+import com.workflow.workflowmanagementsystem.util.RoleUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.persistence.EntityNotFoundException;
@@ -46,12 +48,12 @@ public class TaskController {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private UserRoleRepository userRoleRepository;
+    
     // Get current authenticated user
     private User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        return RoleUtil.getCurrentUser(userRepository);
     }
     
     // List all tasks
@@ -64,7 +66,12 @@ public class TaskController {
             @RequestParam(required = false) Long assignedToId,
             @RequestParam(required = false) Long workflowId,
             @RequestParam(required = false) String search,
-            Model model) {
+            Model model,
+            HttpServletRequest request) {
+        
+        // Set user roles in session
+        User currentUser = getCurrentUser();
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Task> tasks;
@@ -103,7 +110,10 @@ public class TaskController {
     
     // Show create task form
     @GetMapping("/create")
-    public String showCreateForm(@RequestParam(required = false) Long workflowId, Model model) {
+    public String showCreateForm(@RequestParam(required = false) Long workflowId, Model model, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = getCurrentUser();
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
         Task task = new Task();
         if (workflowId != null) {
             Optional<Workflow> workflow = workflowService.getWorkflowById(workflowId);
@@ -114,6 +124,7 @@ public class TaskController {
         model.addAttribute("statusOptions", TaskStatus.values());
         model.addAttribute("priorityOptions", TaskPriority.values());
         model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+        model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
         return "task/create";
     }
     
@@ -129,6 +140,7 @@ public class TaskController {
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/create";
         }
         
@@ -143,25 +155,31 @@ public class TaskController {
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/create";
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", "Invalid input: " + e.getMessage());
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/create";
         } catch (Exception e) {
             model.addAttribute("error", "An unexpected error occurred: " + e.getMessage());
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/create";
         }
     }
     
     // Show edit task form
     @GetMapping("/edit/{id}")
-    public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = getCurrentUser();
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
         Optional<Task> task = taskService.getTaskById(id);
         
         if (task.isPresent()) {
@@ -169,6 +187,7 @@ public class TaskController {
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/edit";
         } else {
             redirectAttributes.addFlashAttribute("error", "Task not found!");
@@ -188,6 +207,7 @@ public class TaskController {
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/edit";
         }
         
@@ -201,29 +221,36 @@ public class TaskController {
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/edit";
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", "Invalid input: " + e.getMessage());
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/edit";
         } catch (Exception e) {
             model.addAttribute("error", "An unexpected error occurred: " + e.getMessage());
             model.addAttribute("statusOptions", TaskStatus.values());
             model.addAttribute("priorityOptions", TaskPriority.values());
             model.addAttribute("workflows", workflowService.getAllWorkflows(PageRequest.of(0, 100)).getContent());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/edit";
         }
     }
     
     // View task details
     @GetMapping("/view/{id}")
-    public String viewTask(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+    public String viewTask(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes, HttpServletRequest request) {
+        // Set user roles in session
+        User currentUser = getCurrentUser();
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
         Optional<Task> task = taskService.getTaskById(id);
         
         if (task.isPresent()) {
             model.addAttribute("task", task.get());
+            model.addAttribute("users", userService.getAllUsers(PageRequest.of(0, 100)).getContent());
             return "task/view";
         } else {
             redirectAttributes.addFlashAttribute("error", "Task not found!");
@@ -300,9 +327,12 @@ public class TaskController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority,
-            Model model) {
+            Model model,
+            HttpServletRequest request) {
         
         User currentUser = getCurrentUser();
+        // Set user roles in session
+        RoleUtil.setUserRolesInSession(currentUser, userRoleRepository, request);
         Pageable pageable = PageRequest.of(page, size, Sort.by("dueDate").ascending());
         
         TaskStatus statusEnum = null;

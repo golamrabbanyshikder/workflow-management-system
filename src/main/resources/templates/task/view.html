@@ -117,8 +117,9 @@
                                     <label class="form-label">Assign to:</label>
                                     <select name="assignedToId" class="form-select form-select-sm" required>
                                         <option value="">Select User</option>
-                                        <option value="1">User 1</option>
-                                        <option value="2">User 2</option>
+                                        <option th:each="user : ${users}"
+                                                th:value="${user.id}"
+                                                th:text="${user.firstName + ' ' + user.lastName + ' (' + user.username + ')'}"></option>
                                     </select>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm">Assign Task</button>
@@ -139,6 +140,12 @@
                                 </div>
                                 <button type="submit" class="btn btn-success btn-sm">Update Status</button>
                             </form>
+                            
+                            <hr>
+                            
+                            <a th:href="@{/task/lifecycle/{id}(id=${task.id})}" class="btn btn-info btn-sm w-100">
+                                <i class="fas fa-project-diagram me-2"></i>View Task Lifecycle
+                            </a>
                             
                             <hr>
                             

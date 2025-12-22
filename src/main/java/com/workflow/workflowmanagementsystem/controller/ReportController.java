@@ -45,6 +45,11 @@ public class ReportController {
         model.addAttribute("priorityOptions", reportService.getTaskPriorityOptions());
         model.addAttribute("departments", reportService.getDepartmentOptions());
         
+        // Add current filter values to maintain selection
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("selectedPriority", priority);
+        model.addAttribute("selectedDepartmentId", departmentId);
+        
         return "reports/task-report";
     }
 
@@ -57,6 +62,10 @@ public class ReportController {
         model.addAttribute("statusOptions", reportService.getWorkflowStatusOptions());
         model.addAttribute("departments", reportService.getDepartmentOptions());
         
+        // Add current filter values to maintain selection
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("selectedDepartmentId", departmentId);
+        
         return "reports/workflow-report";
     }
 
@@ -68,6 +77,10 @@ public class ReportController {
         model.addAttribute("productivityData", reportService.getUserProductivityData(userId, departmentId));
         model.addAttribute("users", reportService.getUserOptions());
         model.addAttribute("departments", reportService.getDepartmentOptions());
+        
+        // Add current filter values to maintain selection
+        model.addAttribute("selectedUserId", userId);
+        model.addAttribute("selectedDepartmentId", departmentId);
         
         return "reports/user-productivity";
     }
@@ -82,6 +95,11 @@ public class ReportController {
         model.addAttribute("actionTypes", reportService.getActionTypeOptions());
         model.addAttribute("entityTypes", reportService.getEntityTypeOptions());
         model.addAttribute("users", reportService.getUserOptions());
+        
+        // Add current filter values to maintain selection
+        model.addAttribute("selectedActionType", actionType);
+        model.addAttribute("selectedEntityType", entityType);
+        model.addAttribute("selectedUserId", userId);
         
         return "reports/audit-logs";
     }

@@ -453,6 +453,22 @@ public class ReportService {
             userData.put("completedTasks", completedTasks);
             userData.put("completionRate", totalTasks > 0 ? (double) completedTasks / totalTasks * 100 : 0.0);
             
+            // Calculate average completion days
+            List<Task> completed = userTasks.getContent().stream()
+                    .filter(task -> task.getStatus() == Task.TaskStatus.COMPLETED &&
+                                   task.getCompletedAt() != null)
+                    .collect(Collectors.toList());
+            
+            if (!completed.isEmpty()) {
+                double avgCompletionDays = completed.stream()
+                        .mapToLong(task -> java.time.Duration.between(task.getCreatedAt(), task.getCompletedAt()).toDays())
+                        .average()
+                        .orElse(0.0);
+                userData.put("averageCompletionDays", Math.round(avgCompletionDays * 100.0) / 100.0);
+            } else {
+                userData.put("averageCompletionDays", 0.0);
+            }
+            
             productivityData.add(userData);
         }
         
@@ -462,24 +478,43 @@ public class ReportService {
         return report;
     }
     
+    // Helper method to find ActionType by display name
+    private AuditLog.ActionType findActionTypeByDisplayName(String displayName) {
+        for (AuditLog.ActionType action : AuditLog.ActionType.values()) {
+            if (action.getDisplayName().equalsIgnoreCase(displayName)) {
+                return action;
+            }
+        }
+        return null;
+    }
+    
     public List<AuditLog> getAuditLogData(String actionType, String entityType, Long userId) {
         LocalDateTime since = LocalDateTime.now().minusDays(30); // Last 30 days
         
-        if (actionType != null && entityType != null && userId != null) {
+        if (actionType != null && !actionType.trim().isEmpty() && entityType != null && !entityType.trim().isEmpty() && userId != null) {
             // All filters applied
-            AuditLog.ActionType action = AuditLog.ActionType.valueOf(actionType.toUpperCase());
-            return auditLogRepository.findByActionTypeAndEntityTypeAndUserIdAndCreatedAtGreaterThanOrderByCreatedAtDesc(
-                    action, entityType, userId, since);
-        } else if (actionType != null && entityType != null) {
+            AuditLog.ActionType action = findActionTypeByDisplayName(actionType);
+            if (action != null) {
+                return auditLogRepository.findByActionTypeAndEntityTypeAndUserIdAndCreatedAtGreaterThanOrderByCreatedAtDesc(
+                        action, entityType, userId, since);
+            }
+            return Collections.emptyList();
+        } else if (actionType != null && !actionType.trim().isEmpty() && entityType != null && !entityType.trim().isEmpty()) {
             // Action type and entity type filters
-            AuditLog.ActionType action = AuditLog.ActionType.valueOf(actionType.toUpperCase());
-            return auditLogRepository.findByActionTypeAndEntityTypeAndCreatedAtGreaterThanOrderByCreatedAtDesc(
-                    action, entityType, since);
-        } else if (actionType != null) {
+            AuditLog.ActionType action = findActionTypeByDisplayName(actionType);
+            if (action != null) {
+                return auditLogRepository.findByActionTypeAndEntityTypeAndCreatedAtGreaterThanOrderByCreatedAtDesc(
+                        action, entityType, since);
+            }
+            return Collections.emptyList();
+        } else if (actionType != null && !actionType.trim().isEmpty()) {
             // Action type filter only
-            AuditLog.ActionType action = AuditLog.ActionType.valueOf(actionType.toUpperCase());
-            return auditLogRepository.findByActionTypeAndCreatedAtGreaterThanOrderByCreatedAtDesc(action, since);
-        } else if (entityType != null) {
+            AuditLog.ActionType action = findActionTypeByDisplayName(actionType);
+            if (action != null) {
+                return auditLogRepository.findByActionTypeAndCreatedAtGreaterThanOrderByCreatedAtDesc(action, since);
+            }
+            return Collections.emptyList();
+        } else if (entityType != null && !entityType.trim().isEmpty()) {
             // Entity type filter only
             return auditLogRepository.findByEntityTypeAndCreatedAtGreaterThanOrderByCreatedAtDesc(entityType, since);
         } else if (userId != null) {
@@ -549,8 +584,8 @@ public class ReportService {
         Page<Task> allTasks = taskService.getAllTasks(pageable);
         
         return allTasks.getContent().stream()
-                .filter(task -> status == null || task.getStatus().name().equalsIgnoreCase(status))
-                .filter(task -> priority == null || task.getPriority().name().equalsIgnoreCase(priority))
+                .filter(task -> status == null || status.trim().isEmpty() || task.getStatus().getDisplayName().equalsIgnoreCase(status))
+                .filter(task -> priority == null || priority.trim().isEmpty() || task.getPriority().getDisplayName().equalsIgnoreCase(priority))
                 .filter(task -> departmentId == null ||
                         (task.getWorkflow() != null && task.getWorkflow().getDepartment() != null &&
                          task.getWorkflow().getDepartment().getId().equals(departmentId)))
@@ -562,7 +597,7 @@ public class ReportService {
         Page<Workflow> allWorkflows = workflowService.getAllWorkflows(pageable);
         
         return allWorkflows.getContent().stream()
-                .filter(workflow -> status == null || workflow.getStatus().name().equalsIgnoreCase(status))
+                .filter(workflow -> status == null || status.trim().isEmpty() || workflow.getStatus().getDisplayName().equalsIgnoreCase(status))
                 .filter(workflow -> departmentId == null ||
                         (workflow.getDepartment() != null && workflow.getDepartment().getId().equals(departmentId)))
                 .collect(Collectors.toList());
@@ -574,8 +609,9 @@ public class ReportService {
         return allUsers.stream()
                 .filter(user -> userId == null || user.getId().equals(userId))
                 .filter(user -> departmentId == null ||
-                        (user.getUserRoles().stream().anyMatch(ur ->
-                         ur.getDepartment() != null && ur.getDepartment().getId().equals(departmentId))))
+                        (user.getUserRoles().stream()
+                                .filter(ur -> ur.isActive() == null || ur.isActive())
+                                .anyMatch(ur -> ur.getDepartment() != null && ur.getDepartment().getId().equals(departmentId))))
                 .collect(Collectors.toList());
     }
 }

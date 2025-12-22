@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Lifecycle - Workflow Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        .lifecycle-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .lifecycle-stage {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .lifecycle-stage:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .stage-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .stage-content {
+            flex: 1;
+        }
+        
+        .stage-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .stage-description {
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .stage-pending {
+            border-left: 5px solid #ffc107;
+            background: linear-gradient(to right, #fff8e1, #fff3cd);
+        }
+        
+        .stage-in-progress {
+            border-left: 5px solid #17a2b8;
+            background: linear-gradient(to right, #fff8e1, #17a2b8);
+        }
+        
+        .stage-on-hold {
+            border-left: 5px solid #6c757d;
+            background: linear-gradient(to right, #fff8e1, #6c757d);
+        }
+        
+        .stage-completed {
+            border-left: 5px solid #28a745;
+            background: linear-gradient(to right, #fff8e1, #28a745);
+        }
+        
+        .stage-cancelled {
+            border-left: 5px solid #dc3545;
+            background: linear-gradient(to right, #fff8e1, #dc3545);
+        }
+        
+        .icon-pending { background-color: #ffc107; }
+        .icon-in-progress { background-color: #17a2b8; }
+        .icon-on-hold { background-color: #6c757d; }
+        .icon-completed { background-color: #28a745; }
+        .icon-cancelled { background-color: #dc3545; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            transition: width 0.5s ease;
+        }
+        
+        .timeline-connector {
+            width: 2px;
+            height: 30px;
+            background-color: #dee2e6;
+            margin-left: 50px;
+            position: relative;
+        }
+        
+        .timeline-connector::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -4px;
+            width: 10px;
+            height: 10px;
+            background-color: #dee2e6;
+            border-radius: 50%;
+        }
+        
+        .header-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header-subtitle {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header}"></div>
+    
+    <div class="container lifecycle-container">
+        <div class="header-section">
+            <h1 class="header-title">Task Lifecycle Management</h1>
+            <p class="header-subtitle">Visual representation of task workflow stages</p>
+        </div>
+        
+        <!-- Statistics Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" th:text="${totalTasks}">0</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" th:text="${completedTasks}">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" th:text="${inProgressTasks}">0</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" th:text="${overdueTasks}">0</div>
+                <div class="stat-label">Overdue</div>
+            </div>
+        </div>
+        
+        <!-- Task Lifecycle Stages -->
+        <div class="lifecycle-stage stage-pending">
+            <div class="stage-icon icon-pending">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stage-content">
+                <div class="stage-title">Pending</div>
+                <div class="stage-description">
+                    Task has been created but not yet started. Waiting for assignment or initial planning.
+                </div>
+            </div>
+        </div>
+        
+        <div class="timeline-connector"></div>
+        
+        <div class="lifecycle-stage stage-in-progress">
+            <div class="stage-icon icon-in-progress">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <div class="stage-content">
+                <div class="stage-title">In Progress</div>
+                <div class="stage-description">
+                    Task is actively being worked on. Resources are allocated and work is underway.
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 60%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="timeline-connector"></div>
+        
+        <div class="lifecycle-stage stage-on-hold">
+            <div class="stage-icon icon-on-hold">
+                <i class="fas fa-pause-circle"></i>
+            </div>
+            <div class="stage-content">
+                <div class="stage-title">On Hold</div>
+                <div class="stage-description">
+                    Task is temporarily paused. Work may resume later or waiting for dependencies.
+                </div>
+            </div>
+        </div>
+        
+        <div class="timeline-connector"></div>
+        
+        <div class="lifecycle-stage stage-completed">
+            <div class="stage-icon icon-completed">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="stage-content">
+                <div class="stage-title">Completed</div>
+                <div class="stage-description">
+                    Task has been successfully finished and marked as complete.
+                </div>
+            </div>
+        </div>
+        
+        <div class="timeline-connector"></div>
+        
+        <div class="lifecycle-stage stage-cancelled">
+            <div class="stage-icon icon-cancelled">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="stage-content">
+                <div class="stage-title">Cancelled</div>
+                <div class="stage-description">
+                    Task was cancelled before completion. No further work will be done.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add interactive animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const stages = document.querySelectorAll('.lifecycle-stage');
+            
+            stages.forEach((stage, index) => {
+                // Add entrance animation
+                setTimeout(() => {
+                    stage.style.opacity = '0';
+                    stage.style.transform = 'translateY(20px)';
+                    
+                    setTimeout(() => {
+                        stage.style.opacity = '1';
+                        stage.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 200);
+                
+                // Add hover effects
+                stage.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.05)';
+                });
+                
+                stage.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -413,3 +413,58 @@ main {
 .notification-badge {
     animation: pulse 2s infinite;
 }
+
+/* Badge color classes for task and workflow status */
+.badge-Pending {
+    background-color: #6c757d;
+}
+
+.badge-In-Progress {
+    background-color: #007bff;
+}
+
+.badge-On-Hold {
+    background-color: #ffc107;
+}
+
+.badge-Completed {
+    background-color: #28a745;
+}
+
+.badge-Cancelled {
+    background-color: #dc3545;
+}
+
+/* Badge color classes for task priority */
+.badge-Low {
+    background-color: #17a2b8;
+}
+
+.badge-Medium {
+    background-color: #ffc107;
+}
+
+.badge-High {
+    background-color: #fd7e14;
+}
+
+.badge-Urgent {
+    background-color: #dc3545;
+}
+
+/* Badge color classes for workflow status */
+.badge-Draft {
+    background-color: #6c757d;
+}
+
+.badge-Active {
+    background-color: #28a745;
+}
+
+.badge-Suspended {
+    background-color: #ffc107;
+}
+
+.badge-Archived {
+    background-color: #17a2b8;
+}

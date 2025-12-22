@@ -82,9 +82,9 @@
                                         <label for="assignedTo" class="form-label">Assigned To</label>
                                         <select class="form-select" id="assignedTo" th:field="*{assignedTo.id}">
                                             <option value="">Select User</option>
-                                            <!-- This would need to be populated with actual users -->
-                                            <option value="1">User 1</option>
-                                            <option value="2">User 2</option>
+                                            <option th:each="user : ${users}"
+                                                    th:value="${user.id}"
+                                                    th:text="${user.firstName + ' ' + user.lastName + ' (' + user.username + ')'}"></option>
                                         </select>
                                     </div>
                                 </div>
