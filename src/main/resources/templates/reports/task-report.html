@@ -21,6 +21,9 @@
                         <button class="btn btn-outline-primary" onclick="exportToCSV()">
                             <i class="fas fa-download me-1"></i>Export CSV
                         </button>
+                        <button class="btn btn-outline-danger" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf me-1"></i>Export PDF
+                        </button>
                     </div>
                 </div>
                 
@@ -134,7 +137,11 @@
     <script>
         function exportToCSV() {
             // This would typically call an API endpoint to generate CSV
-            window.location.href = '/api/reports/task-report/export';
+            window.location.href = '/reports/task-report/export';
+        }
+        
+        function exportToPDF() {
+            window.location.href = '/reports/task-report/export/pdf';
         }
     </script>
 </body>

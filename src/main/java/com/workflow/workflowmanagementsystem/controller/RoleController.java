@@ -1,17 +1,28 @@
 package com.workflow.workflowmanagementsystem.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.workflow.workflowmanagementsystem.Repository.UserRepository;
 import com.workflow.workflowmanagementsystem.entity.Role;
 import com.workflow.workflowmanagementsystem.entity.User;
 import com.workflow.workflowmanagementsystem.service.RoleService;
 import com.workflow.workflowmanagementsystem.service.UserRoleService;
 import com.workflow.workflowmanagementsystem.service.UserService;
+import com.workflow.workflowmanagementsystem.util.RoleUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 @Controller
@@ -26,6 +37,9 @@ public class RoleController {
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping
     public String listRoles(Model model) {
@@ -223,8 +237,9 @@ public class RoleController {
                                  @RequestParam(required = false) Long teamId,
                                  RedirectAttributes redirectAttributes) {
         try {
-            // For simplicity, using current user ID as assignedBy (in real app, get from security context)
-            userRoleService.assignRoleToUser(userId, roleId, departmentId, teamId, 1L);
+            // Get current user from security context
+            User currentUser = RoleUtil.getCurrentUser(userRepository);
+            userRoleService.assignRoleToUser(userId, roleId, departmentId, teamId, currentUser.getId());
             redirectAttributes.addFlashAttribute("success", "User assigned to role successfully!");
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
@@ -265,6 +280,106 @@ public class RoleController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/roles";
+    }
+    
+    @GetMapping("/export/pdf")
+    public void exportRolesToPDF(jakarta.servlet.http.HttpServletResponse response) throws IOException, DocumentException {
+        List<Role> roles = roleService.getAllRoles();
+        
+        // Create PDF document
+        Document document = new Document(PageSize.A4);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PdfWriter.getInstance(document, outputStream);
+        
+        document.open();
+        
+        // Add title
+        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.BLACK);
+        Paragraph title = new Paragraph("Role Management Report", titleFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        title.setSpacingAfter(20);
+        document.add(title);
+        
+        // Add generation timestamp
+        Font timestampFont = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.GRAY);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Paragraph timestamp = new Paragraph("Generated on: " + sdf.format(new Date()), timestampFont);
+        timestamp.setAlignment(Element.ALIGN_CENTER);
+        timestamp.setSpacingAfter(20);
+        document.add(timestamp);
+        
+        // Create table
+        PdfPTable table = new PdfPTable(6); // ID, Name, Type, Level, Users, Status
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{10f, 25f, 15f, 10f, 15f, 25f});
+        
+        // Add table headers
+        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.WHITE);
+        String[] headers = {"ID", "Role Name", "Type", "Level", "Users", "Status"};
+        
+        for (String header : headers) {
+            PdfPCell cell = new PdfPCell(new Phrase(header, headerFont));
+            cell.setBackgroundColor(BaseColor.DARK_GRAY);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setPadding(8);
+            table.addCell(cell);
+        }
+        
+        // Add table data
+        Font dataFont = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+        
+        for (Role role : roles) {
+            // ID
+            PdfPCell idCell = new PdfPCell(new Phrase(String.valueOf(role.getId()), dataFont));
+            idCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            idCell.setPadding(5);
+            table.addCell(idCell);
+            
+            // Role Name
+            PdfPCell nameCell = new PdfPCell(new Phrase(role.getName() != null ? role.getName() : "N/A", dataFont));
+            nameCell.setPadding(5);
+            table.addCell(nameCell);
+            
+            // Type
+            String roleType = "User";
+            if (role.getName() != null) {
+                if (role.getName().contains("ADMIN") || role.getName().contains("CEO") || role.getName().contains("DEPARTMENT_HEAD")) {
+                    roleType = "Admin";
+                } else if (role.getName().contains("TEAM_LEAD")) {
+                    roleType = "Lead";
+                }
+            }
+            PdfPCell typeCell = new PdfPCell(new Phrase(roleType, dataFont));
+            typeCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            typeCell.setPadding(5);
+            table.addCell(typeCell);
+            
+            // Level
+            PdfPCell levelCell = new PdfPCell(new Phrase(role.getRoleLevel() != null ? String.valueOf(role.getRoleLevel()) : "N/A", dataFont));
+            levelCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            levelCell.setPadding(5);
+            table.addCell(levelCell);
+            
+            // Users (placeholder - would need actual count)
+            PdfPCell usersCell = new PdfPCell(new Phrase("0", dataFont));
+            usersCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            usersCell.setPadding(5);
+            table.addCell(usersCell);
+            
+            // Status
+            PdfPCell statusCell = new PdfPCell(new Phrase(role.isActive() != null && role.isActive() ? "Active" : "Inactive", dataFont));
+            statusCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            statusCell.setPadding(5);
+            table.addCell(statusCell);
+        }
+        
+        document.add(table);
+        document.close();
+        
+        // Set response headers
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=\"roles-report.pdf\"");
+        response.getOutputStream().write(outputStream.toByteArray());
     }
     
     private List<String> getAvailablePermissions() {

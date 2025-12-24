@@ -4,12 +4,14 @@ import com.workflow.workflowmanagementsystem.Repository.AuditLogRepository;
 import com.workflow.workflowmanagementsystem.Repository.TaskRepository;
 import com.workflow.workflowmanagementsystem.Repository.UserRepository;
 import com.workflow.workflowmanagementsystem.Repository.WorkflowRepository;
+import com.workflow.workflowmanagementsystem.Repository.WorkflowStatusLayerRepository;
 import com.workflow.workflowmanagementsystem.entity.AuditLog;
 import com.workflow.workflowmanagementsystem.entity.Task;
 import com.workflow.workflowmanagementsystem.entity.Task.TaskPriority;
 import com.workflow.workflowmanagementsystem.entity.Task.TaskStatus;
 import com.workflow.workflowmanagementsystem.entity.User;
 import com.workflow.workflowmanagementsystem.entity.Workflow;
+import com.workflow.workflowmanagementsystem.entity.WorkflowStatusLayer;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -39,6 +41,9 @@ public class TaskService {
     @Autowired
     private AuditLogRepository auditLogRepository;
     
+    @Autowired
+    private WorkflowStatusLayerRepository workflowStatusLayerRepository;
+    
     // Create a new task
     public Task createTask(Task task, Long createdByUserId) {
         // Validate workflow exists
@@ -64,10 +69,18 @@ public class TaskService {
         task.setWorkflow(workflow);
         task.setCreatedBy(createdBy);
         
-        Task savedTask = taskRepository.save(task);
+        // Set default workflow status layer if not provided
+        if (task.getWorkflowStatusLayer() == null) {
+            WorkflowStatusLayer firstStatusLayer = workflow.getFirstStatusLayer();
+            if (firstStatusLayer != null) {
+                task.setWorkflowStatusLayer(firstStatusLayer);
+            }
+        }
+        
+        Task savedTask = this.taskRepository.save(task);
         
         // Log the creation
-        logAuditAction(AuditLog.ActionType.CREATE, "Task", savedTask.getId(), 
+        logAuditAction(AuditLog.ActionType.CREATE, "Task", savedTask.getId(),
                       "Created task: " + savedTask.getTitle() + " in workflow: " + workflow.getName(), createdBy);
         
         return savedTask;
@@ -90,13 +103,15 @@ public class TaskService {
         
         // Store old values for audit
         String oldValues = String.format("Title: %s, Status: %s, Priority: %s, AssignedTo: %s",
-                existingTask.getTitle(), existingTask.getStatus(), existingTask.getPriority(),
+                existingTask.getTitle(),
+                existingTask.getWorkflowStatusLayer() != null ? existingTask.getWorkflowStatusLayer().getName() : "None",
+                existingTask.getPriority(),
                 existingTask.getAssignedTo() != null ? existingTask.getAssignedTo().getUsername() : "Unassigned");
         
         // Update fields
         existingTask.setTitle(taskDetails.getTitle());
         existingTask.setDescription(taskDetails.getDescription());
-        existingTask.setStatus(taskDetails.getStatus());
+        // Status is now derived from workflowStatusLayer, not set directly
         existingTask.setPriority(taskDetails.getPriority());
         existingTask.setDueDate(taskDetails.getDueDate());
         existingTask.setEstimatedHours(taskDetails.getEstimatedHours());
@@ -109,11 +124,13 @@ public class TaskService {
             existingTask.setAssignedTo(assignedTo);
         }
         
-        Task updatedTask = taskRepository.save(existingTask);
+        Task updatedTask = this.taskRepository.save(existingTask);
         
         // Log the update
         String newValues = String.format("Title: %s, Status: %s, Priority: %s, AssignedTo: %s",
-                updatedTask.getTitle(), updatedTask.getStatus(), updatedTask.getPriority(),
+                updatedTask.getTitle(),
+                updatedTask.getWorkflowStatusLayer() != null ? updatedTask.getWorkflowStatusLayer().getName() : "None",
+                updatedTask.getPriority(),
                 updatedTask.getAssignedTo() != null ? updatedTask.getAssignedTo().getUsername() : "Unassigned");
         
         logAuditAction(AuditLog.ActionType.UPDATE, "Task", updatedTask.getId(), 
@@ -132,9 +149,11 @@ public class TaskService {
         return taskRepository.findAll(pageable);
     }
     
-    // Get tasks by status
+    // Get tasks by status - method removed as status is now derived from workflowStatusLayer
     public List<Task> getTasksByStatus(TaskStatus status) {
-        return taskRepository.findByStatus(status);
+        // This method is deprecated as status is now derived from workflowStatusLayer
+        // Return empty list to maintain compatibility
+        return new java.util.ArrayList<>();
     }
     
     // Get tasks by priority
@@ -209,7 +228,7 @@ public class TaskService {
         User previousAssignee = task.getAssignedTo();
         task.setAssignedTo(assignedTo);
         
-        Task updatedTask = taskRepository.save(task);
+        Task updatedTask = this.taskRepository.save(task);
         
         // Log the assignment
         String description = String.format("Assigned task '%s' to %s", task.getTitle(), assignedTo.getUsername());
@@ -222,25 +241,47 @@ public class TaskService {
         return updatedTask;
     }
     
-    // Change task status
+    // Change task status (kept for compatibility but redirects to workflow status change)
     public Task changeTaskStatus(Long id, TaskStatus newStatus, Long changedByUserId) {
+        // This method is kept for compatibility but should use workflow status layers instead
+        // For now, find a workflow status layer that matches the desired status
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Task not found with ID: " + id));
         
-        User changedBy = userRepository.findById(changedByUserId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + changedByUserId));
+        List<WorkflowStatusLayer> statusLayers = workflowStatusLayerRepository
+                .findByWorkflowIdOrderByOrderAsc(task.getWorkflow().getId());
         
-        TaskStatus oldStatus = task.getStatus();
-        task.setStatus(newStatus);
+        WorkflowStatusLayer targetLayer = null;
+        if (newStatus == TaskStatus.COMPLETED) {
+            targetLayer = statusLayers.stream()
+                    .filter(WorkflowStatusLayer::getIsFinal)
+                    .findFirst()
+                    .orElse(null);
+        } else if (newStatus == TaskStatus.ON_HOLD) {
+            targetLayer = statusLayers.stream()
+                    .filter(layer -> !layer.getIsFinal() &&
+                            (layer.getName().toLowerCase().contains("hold") || layer.getName().toLowerCase().contains("pause")))
+                    .findFirst()
+                    .orElse(null);
+        } else if (newStatus == TaskStatus.IN_PROGRESS) {
+            targetLayer = statusLayers.stream()
+                    .filter(layer -> !layer.getIsFinal() &&
+                            (layer.getName().toLowerCase().contains("progress") || layer.getName().toLowerCase().contains("active")))
+                    .findFirst()
+                    .orElse(null);
+        } else {
+            // Find first non-final status layer for PENDING
+            targetLayer = statusLayers.stream()
+                    .filter(layer -> !layer.getIsFinal())
+                    .findFirst()
+                    .orElse(null);
+        }
         
-        Task updatedTask = taskRepository.save(task);
+        if (targetLayer != null) {
+            return changeTaskWorkflowStatus(id, targetLayer.getId(), changedByUserId);
+        }
         
-        // Log the status change
-        logAuditAction(AuditLog.ActionType.UPDATE, "Task", id, 
-                      "Changed status from " + oldStatus + " to " + newStatus + " for task: " + task.getTitle(), 
-                      changedBy, oldStatus.toString(), newStatus.toString());
-        
-        return updatedTask;
+        return task;
     }
     
     // Complete task
@@ -251,15 +292,27 @@ public class TaskService {
         User completedBy = userRepository.findById(completedByUserId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + completedByUserId));
         
-        task.setStatus(TaskStatus.COMPLETED);
+        // Find final status layer in the workflow
+        List<WorkflowStatusLayer> statusLayers = workflowStatusLayerRepository
+                .findByWorkflowIdOrderByOrderAsc(task.getWorkflow().getId());
+        
+        WorkflowStatusLayer finalStatusLayer = statusLayers.stream()
+                .filter(WorkflowStatusLayer::getIsFinal)
+                .findFirst()
+                .orElse(null);
+        
+        if (finalStatusLayer != null) {
+            task.setWorkflowStatusLayer(finalStatusLayer);
+        }
+        
         if (actualHours != null) {
             task.setActualHours(actualHours);
         }
         
-        Task completedTask = taskRepository.save(task);
+        Task completedTask = this.taskRepository.save(task);
         
         // Log the completion
-        logAuditAction(AuditLog.ActionType.COMPLETE, "Task", id, 
+        logAuditAction(AuditLog.ActionType.COMPLETE, "Task", id,
                       "Completed task: " + task.getTitle(), completedBy);
         
         return completedTask;
@@ -300,5 +353,128 @@ public class TaskService {
         auditLog.setOldValues(oldValues);
         auditLog.setNewValues(newValues);
         auditLogRepository.save(auditLog);
+    }
+    
+    // Dynamic Workflow Status Methods
+    
+    /**
+     * Create a new task with workflow status layer
+     */
+    public Task createTaskWithWorkflowStatus(Task task, Long workflowStatusLayerId, Long createdByUserId) {
+        // Validate workflow exists
+        Workflow workflow = workflowRepository.findById(task.getWorkflow().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Workflow not found with ID: " + task.getWorkflow().getId()));
+        
+        // Validate workflow status layer exists
+        WorkflowStatusLayer workflowStatusLayer = workflowStatusLayerRepository.findById(workflowStatusLayerId)
+                .orElseThrow(() -> new EntityNotFoundException("Workflow status layer not found with ID: " + workflowStatusLayerId));
+        
+        // Validate that the status layer belongs to the workflow
+        if (!workflowStatusLayer.getWorkflow().getId().equals(workflow.getId())) {
+            throw new IllegalArgumentException("Status layer does not belong to the specified workflow");
+        }
+        
+        // Validate creator
+        User createdBy = userRepository.findById(createdByUserId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + createdByUserId));
+        
+        // Validate assigned user if provided
+        if (task.getAssignedTo() != null && task.getAssignedTo().getId() != null) {
+            User assignedTo = userRepository.findById(task.getAssignedTo().getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Assigned user not found with ID: " + task.getAssignedTo().getId()));
+            task.setAssignedTo(assignedTo);
+        }
+        
+        // Check for duplicate task title in workflow
+        if (taskRepository.existsByTitleIgnoreCaseAndWorkflowId(task.getTitle(), workflow.getId())) {
+            throw new IllegalArgumentException("Task with title '" + task.getTitle() + "' already exists in this workflow");
+        }
+        
+        task.setWorkflow(workflow);
+        task.setWorkflowStatusLayer(workflowStatusLayer);
+        task.setCreatedBy(createdBy);
+        
+        // Status is now derived from workflowStatusLayer, no need to set it directly
+        // The getStatus() method will derive the correct status based on the workflowStatusLayer
+        
+        Task savedTask = this.taskRepository.save(task);
+        
+        // Log the creation
+        logAuditAction(AuditLog.ActionType.CREATE, "Task", savedTask.getId(),
+                      "Created task: " + savedTask.getTitle() + " with status: " + workflowStatusLayer.getName() +
+                      " in workflow: " + workflow.getName(), createdBy);
+        
+        return savedTask;
+    }
+    
+    /**
+     * Change task workflow status layer
+     */
+    public Task changeTaskWorkflowStatus(Long taskId, Long newWorkflowStatusLayerId, Long changedByUserId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found with ID: " + taskId));
+        
+        User changedBy = userRepository.findById(changedByUserId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + changedByUserId));
+        
+        WorkflowStatusLayer newWorkflowStatusLayer = workflowStatusLayerRepository.findById(newWorkflowStatusLayerId)
+                .orElseThrow(() -> new EntityNotFoundException("Workflow status layer not found with ID: " + newWorkflowStatusLayerId));
+        
+        // Validate that the status layer belongs to the task's workflow
+        if (!newWorkflowStatusLayer.getWorkflow().getId().equals(task.getWorkflow().getId())) {
+            throw new IllegalArgumentException("Status layer does not belong to the task's workflow");
+        }
+        
+        WorkflowStatusLayer oldWorkflowStatusLayer = task.getWorkflowStatusLayer();
+        task.setWorkflowStatusLayer(newWorkflowStatusLayer);
+        
+        // completedAt is now automatically managed by setWorkflowStatusLayer method
+        
+        Task updatedTask = this.taskRepository.save(task);
+        
+        // Log the status change
+        String description = String.format("Changed workflow status from %s to %s for task: %s",
+                oldWorkflowStatusLayer != null ? oldWorkflowStatusLayer.getName() : "None",
+                newWorkflowStatusLayer.getName(), task.getTitle());
+        
+        logAuditAction(AuditLog.ActionType.UPDATE, "Task", taskId, description, changedBy,
+                      oldWorkflowStatusLayer != null ? oldWorkflowStatusLayer.getName() : "None",
+                      newWorkflowStatusLayer.getName());
+        
+        return updatedTask;
+    }
+    
+    /**
+     * Get next available workflow status layers for a task
+     */
+    public List<WorkflowStatusLayer> getNextWorkflowStatusLayers(Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found with ID: " + taskId));
+        
+        if (task.getWorkflowStatusLayer() == null) {
+            // Return all status layers for the workflow if task has no current status
+            return workflowStatusLayerRepository.findByWorkflowIdOrderByOrderAsc(task.getWorkflow().getId());
+        }
+        
+        // Return status layers with higher order than current
+        return workflowStatusLayerRepository.findByWorkflowIdOrderByOrderAsc(task.getWorkflow().getId())
+                .stream()
+                .filter(statusLayer -> statusLayer.getOrder() > task.getWorkflowStatusLayer().getOrder())
+                .toList();
+    }
+    
+    /**
+     * Get tasks by workflow status layer
+     */
+    public List<Task> getTasksByWorkflowStatusLayer(Long workflowStatusLayerId) {
+        return taskRepository.findByWorkflowStatusLayerId(workflowStatusLayerId);
+    }
+    
+    /**
+     * Get tasks with workflow status layer filter
+     */
+    public Page<Task> getTasksWithWorkflowStatusLayerFilter(Long workflowStatusLayerId, TaskPriority priority,
+                                                           Long assignedToId, Pageable pageable) {
+        return taskRepository.findTasksWithWorkflowStatusLayerFilter(workflowStatusLayerId, priority, assignedToId, pageable);
     }
 }

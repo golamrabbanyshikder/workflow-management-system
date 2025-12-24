@@ -170,36 +170,53 @@
                                         <span th:text="${#temporals.format(task.dueDate, 'yyyy-MM-dd HH:mm')}">Due Date</span></p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p><strong><i class="fas fa-flag me-2"></i>Priority:</strong> 
+                                    <p><strong><i class="fas fa-flag me-2"></i>Priority:</strong>
                                         <span th:class="|badge ${task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).URGENT ? 'bg-danger' :
                                                        task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).HIGH ? 'bg-warning' :
                                                        task.priority == T(com.workflow.workflowmanagementsystem.entity.Task.TaskPriority).MEDIUM ? 'bg-info' : 'bg-secondary'}|"
                                               th:text="${task.priority.displayName}"></span></p>
-                                    <p><strong><i class="fas fa-clock me-2"></i>Created:</strong> 
+                                    <p><strong><i class="fas fa-layer-group me-2"></i>Current Stage:</strong>
+                                        <span th:if="${task.workflowStatusLayer != null}"
+                                              th:class="|badge ms-1|"
+                                              th:style="'background-color: ' + ${task.workflowStatusLayer.color != null ? task.workflowStatusLayer.color : '#6c757d'} + ';'"
+                                              th:text="${task.workflowStatusLayer.name}">Current Stage</span>
+                                        <span th:if="${task.workflowStatusLayer == null}" class="badge bg-secondary">Not Set</span>
+                                    </p>
+                                    <p><strong><i class="fas fa-clock me-2"></i>Created:</strong>
                                         <span th:text="${#temporals.format(task.createdAt, 'yyyy-MM-dd HH:mm')}">Created Date</span></p>
-                                    <p th:if="${task.completedAt}"><strong><i class="fas fa-check-circle me-2"></i>Completed:</strong> 
+                                    <p th:if="${task.completedAt}"><strong><i class="fas fa-check-circle me-2"></i>Completed:</strong>
                                         <span th:text="${#temporals.format(task.completedAt, 'yyyy-MM-dd HH:mm')}">Completed Date</span></p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4 text-center">
                             <div class="status-icon">
-                                <i th:class="|fas ${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'fa-check-circle text-success' :
-                                              task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 'fa-spinner text-primary' :
-                                              task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 'fa-clock text-warning' :
-                                              task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 'fa-pause-circle text-info' : 'fa-times-circle text-danger'}|"></i>
+                                <i th:if="${task.workflowStatusLayer != null}"
+                                   th:class="|fas ${task.workflowStatusLayer.isFinal ? 'fa-check-circle' :
+                                               task.workflowStatusLayer.name.toLowerCase().contains('hold') or task.workflowStatusLayer.name.toLowerCase().contains('pause') ? 'fa-pause-circle' :
+                                               task.workflowStatusLayer.name.toLowerCase().contains('cancel') ? 'fa-times-circle' :
+                                               task.workflowStatusLayer.name.toLowerCase().contains('progress') or task.workflowStatusLayer.name.toLowerCase().contains('active') ? 'fa-spinner' : 'fa-clock'}|"
+                                   th:style="'color: ' + ${task.workflowStatusLayer.color != null ? task.workflowStatusLayer.color : '#6c757d'} + '; font-size: 48px;'"></i>
+                                <i th:if="${task.workflowStatusLayer == null}" class="fas fa-clock text-warning" style="font-size: 48px;"></i>
                             </div>
-                            <h4 th:text="${task.status.displayName}" class="mb-3">Current Status</h4>
+                            <h4 th:text="${task.workflowStatusLayer != null ? task.workflowStatusLayer.name : task.status.displayName}"
+                                th:style="'color: ' + ${task.workflowStatusLayer != null and task.workflowStatusLayer.color != null ? task.workflowStatusLayer.color : '#6c757d'} + ';'"
+                                class="mb-3">Current Status</h4>
                             <div class="progress-indicator">
-                                <div class="progress-bar" th:style="'width: ' + ${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 100 : 
-                                                                                task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 60 :
-                                                                                task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 25 :
-                                                                                task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 40 : 0} + '%'"></div>
+                                <div class="progress-bar"
+                                     th:with="currentOrder=${task.workflowStatusLayer != null ? task.workflowStatusLayer.order : 1},
+                                           totalStages=${statusLayers != null ? statusLayers.size() : 1},
+                                           progress=${currentOrder > 0 and totalStages > 0 ? (currentOrder * 100 / totalStages) : 0}"
+                                     th:style="'width: ' + ${progress} + '%; background: ' + ${task.workflowStatusLayer != null and task.workflowStatusLayer.color != null ? task.workflowStatusLayer.color : '#667eea'} + ';'"></div>
                             </div>
-                            <small class="text-muted">Progress: <span th:text="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 100 : 
-                                                                                   task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 60 :
-                                                                                   task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 25 :
-                                                                                   task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 40 : 0}">0</span>%</small>
+                            <small class="text-muted">
+                                Progress:
+                                <span th:with="currentOrder=${task.workflowStatusLayer != null ? task.workflowStatusLayer.order : 1},
+                                           totalStages=${statusLayers != null ? statusLayers.size() : 1},
+                                           progress=${currentOrder > 0 and totalStages > 0 ? (currentOrder * 100 / totalStages) : 0}"
+                                      th:text="${#numbers.formatDecimal(progress, 1, 0)}">0</span>%
+                                <span th:if="${task.workflowStatusLayer != null}" th:text="'(' + ${task.workflowStatusLayer.name} + ')'"></span>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -211,48 +228,32 @@
             <div class="col-12">
                 <h3 class="mb-4"><i class="fas fa-route me-2"></i>Task Lifecycle Stages</h3>
                 <div class="timeline">
-                    <div class="timeline-item">
-                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-success' : 'bg-secondary'}"></div>
-                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 'active' : 'completed'}">
-                            <h5><i class="fas fa-clock me-2"></i>Pending</h5>
-                            <p>Task has been created and is waiting to be started.</p>
-                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING}">Current Stage</small>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item">
-                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-primary' : 'bg-secondary'}"></div>
-                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 'active' : task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'completed' : 'pending'}">
-                            <h5><i class="fas fa-spinner me-2"></i>In Progress</h5>
-                            <p>Task is currently being worked on by the assigned user.</p>
-                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS}">Current Stage</small>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item">
-                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD or task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-info' : 'bg-secondary'}"></div>
-                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 'active' : task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'completed' : 'pending'}">
-                            <h5><i class="fas fa-pause-circle me-2"></i>On Hold</h5>
-                            <p>Task has been temporarily paused due to dependencies or blockers.</p>
-                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD}">Current Stage</small>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item">
-                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-success' : 'bg-secondary'}"></div>
-                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'active' : 'pending'}">
-                            <h5><i class="fas fa-check-circle me-2"></i>Completed</h5>
-                            <p>Task has been successfully finished and marked as complete.</p>
-                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED}">Current Stage</small>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item">
-                        <div class="timeline-dot" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).CANCELLED ? 'bg-danger' : 'bg-secondary'}"></div>
-                        <div class="timeline-content" th:classappend="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).CANCELLED ? 'active' : 'pending'}">
-                            <h5><i class="fas fa-times-circle me-2"></i>Cancelled</h5>
-                            <p>Task has been cancelled and will not be completed.</p>
-                            <small class="text-muted" th:if="${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).CANCELLED}">Current Stage</small>
+                    <div th:each="statusLayer, iterStat : ${statusLayers}" class="timeline-item">
+                        <div class="timeline-dot"
+                             th:style="'background-color: ' + ${statusLayer.color != null ? statusLayer.color : '#6c757d'} + ';'"
+                             th:classappend="${task.workflowStatusLayer != null and task.workflowStatusLayer.id == statusLayer.id or
+                                             task.workflowStatusLayer != null and task.workflowStatusLayer.order > statusLayer.order or
+                                             task.workflowStatusLayer == null and statusLayer.order == 1 ? '' : 'bg-secondary'}"></div>
+                        <div class="timeline-content"
+                             th:style="'border-left: 4px solid ' + ${statusLayer.color != null ? statusLayer.color : '#6c757d'} + ';'"
+                             th:classappend="${task.workflowStatusLayer != null and task.workflowStatusLayer.id == statusLayer.id ? 'active' :
+                                             task.workflowStatusLayer != null and task.workflowStatusLayer.order > statusLayer.order or
+                                             task.workflowStatusLayer == null and statusLayer.order == 1 ? 'completed' : 'pending'}">
+                            <h5>
+                                <i class="fas me-2"
+                                   th:class="${statusLayer.isFinal ? 'fa-check-circle' :
+                                               statusLayer.name.toLowerCase().contains('hold') or statusLayer.name.toLowerCase().contains('pause') ? 'fa-pause-circle' :
+                                               statusLayer.name.toLowerCase().contains('cancel') ? 'fa-times-circle' :
+                                               statusLayer.name.toLowerCase().contains('progress') or statusLayer.name.toLowerCase().contains('active') ? 'fa-spinner' : 'fa-clock'}"></i>
+                                <span th:text="${statusLayer.name}">Status Name</span>
+                            </h5>
+                            <p th:text="${statusLayer.description != null ? statusLayer.description : 'Task is in this stage of the workflow.'}">Status description</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted" th:if="${task.workflowStatusLayer != null and task.workflowStatusLayer.id == statusLayer.id}">Current Stage</small>
+                                <small class="text-muted" th:if="${task.workflowStatusLayer != null and task.workflowStatusLayer.order > statusLayer.order or task.workflowStatusLayer == null and statusLayer.order == 1}">Completed</small>
+                                <small class="text-muted" th:if="${task.workflowStatusLayer == null or task.workflowStatusLayer.order < statusLayer.order}">Upcoming</small>
+                                <span class="badge" th:if="${statusLayer.isFinal}" style="background-color: #28a745;">Final Stage</span>
+                            </div>
                         </div>
                     </div>
                 </div>

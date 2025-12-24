@@ -1,9 +1,13 @@
 package com.workflow.workflowmanagementsystem.controller;
 
+import com.workflow.workflowmanagementsystem.dto.DepartmentDto;
 import com.workflow.workflowmanagementsystem.dto.DepartmentStats;
+import com.workflow.workflowmanagementsystem.dto.RoleDto;
 import com.workflow.workflowmanagementsystem.dto.RoleStats;
 import com.workflow.workflowmanagementsystem.dto.SystemOverviewStats;
+import com.workflow.workflowmanagementsystem.dto.TeamDto;
 import com.workflow.workflowmanagementsystem.dto.TeamStats;
+import com.workflow.workflowmanagementsystem.dto.UserDto;
 import com.workflow.workflowmanagementsystem.entity.Department;
 import com.workflow.workflowmanagementsystem.entity.Role;
 import com.workflow.workflowmanagementsystem.entity.Team;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -42,56 +47,71 @@ public class ApiController {
 
     // Department endpoints
     @GetMapping("/departments")
-    public ResponseEntity<List<Department>> getAllDepartments() {
+    public ResponseEntity<List<DepartmentDto>> getAllDepartments() {
         List<Department> departments = departmentService.getAllDepartments();
-        return ResponseEntity.ok(departments);
+        List<DepartmentDto> departmentDtos = departments.stream()
+                .map(this::convertToDepartmentDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(departmentDtos);
     }
 
     @GetMapping("/departments/{id}")
-    public ResponseEntity<Department> getDepartmentById(@PathVariable Long id) {
+    public ResponseEntity<DepartmentDto> getDepartmentById(@PathVariable Long id) {
         Optional<Department> department = departmentService.getDepartmentById(id);
-        return department.map(ResponseEntity::ok)
+        return department.map(dept -> ResponseEntity.ok(convertToDepartmentDto(dept)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/departments/{id}/teams")
-    public ResponseEntity<List<Team>> getTeamsByDepartment(@PathVariable Long id) {
+    public ResponseEntity<List<TeamDto>> getTeamsByDepartment(@PathVariable Long id) {
         List<Team> teams = teamService.getTeamsByDepartment(id);
-        return ResponseEntity.ok(teams);
+        List<TeamDto> teamDtos = teams.stream()
+                .map(this::convertToTeamDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(teamDtos);
     }
 
     // Team endpoints
     @GetMapping("/teams")
-    public ResponseEntity<List<Team>> getAllTeams() {
+    public ResponseEntity<List<TeamDto>> getAllTeams() {
         List<Team> teams = teamService.getAllTeams();
-        return ResponseEntity.ok(teams);
+        List<TeamDto> teamDtos = teams.stream()
+                .map(this::convertToTeamDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(teamDtos);
     }
 
     @GetMapping("/teams/active")
-    public ResponseEntity<List<Team>> getActiveTeams() {
+    public ResponseEntity<List<TeamDto>> getActiveTeams() {
         List<Team> teams = teamService.getActiveTeams();
-        return ResponseEntity.ok(teams);
+        List<TeamDto> teamDtos = teams.stream()
+                .map(this::convertToTeamDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(teamDtos);
     }
 
     @GetMapping("/teams/{id}")
-    public ResponseEntity<Team> getTeamById(@PathVariable Long id) {
+    public ResponseEntity<TeamDto> getTeamById(@PathVariable Long id) {
         Optional<Team> team = teamService.getTeamById(id);
-        return team.map(ResponseEntity::ok)
+        return team.map(t -> ResponseEntity.ok(convertToTeamDto(t)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/teams/{id}/members")
-    public ResponseEntity<List<User>> getTeamMembers(@PathVariable Long id) {
+    public ResponseEntity<List<UserDto>> getTeamMembers(@PathVariable Long id) {
         Optional<Team> team = teamService.getTeamById(id);
         if (team.isPresent()) {
             List<User> members = team.get().getMembers();
-            return ResponseEntity.ok(members);
+            List<UserDto> userDtos = members.stream()
+                    .map(this::convertToUserDto)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(userDtos);
         }
         return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/teams/search")
-    public ResponseEntity<List<Team>> searchTeams(
+    public ResponseEntity<List<TeamDto>> searchTeams(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Long departmentId) {
         List<Team> teams;
@@ -102,26 +122,35 @@ public class ApiController {
         } else {
             teams = teamService.getAllTeams();
         }
-        return ResponseEntity.ok(teams);
+        List<TeamDto> teamDtos = teams.stream()
+                .map(this::convertToTeamDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(teamDtos);
     }
 
     // Role endpoints
     @GetMapping("/roles")
-    public ResponseEntity<List<Role>> getAllRoles() {
+    public ResponseEntity<List<RoleDto>> getAllRoles() {
         List<Role> roles = roleService.getAllRoles();
-        return ResponseEntity.ok(roles);
+        List<RoleDto> roleDtos = roles.stream()
+                .map(this::convertToRoleDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(roleDtos);
     }
 
     @GetMapping("/roles/active")
-    public ResponseEntity<List<Role>> getActiveRoles() {
+    public ResponseEntity<List<RoleDto>> getActiveRoles() {
         List<Role> roles = roleService.getActiveRoles();
-        return ResponseEntity.ok(roles);
+        List<RoleDto> roleDtos = roles.stream()
+                .map(this::convertToRoleDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(roleDtos);
     }
 
     @GetMapping("/roles/{id}")
-    public ResponseEntity<Role> getRoleById(@PathVariable Long id) {
+    public ResponseEntity<RoleDto> getRoleById(@PathVariable Long id) {
         Optional<Role> role = roleService.getRoleById(id);
-        return role.map(ResponseEntity::ok)
+        return role.map(r -> ResponseEntity.ok(convertToRoleDto(r)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -132,55 +161,76 @@ public class ApiController {
     }
 
     @GetMapping("/roles/search")
-    public ResponseEntity<List<Role>> searchRoles(
+    public ResponseEntity<List<RoleDto>> searchRoles(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Boolean active) {
         List<Role> roles = roleService.searchRoles(name, active);
-        return ResponseEntity.ok(roles);
+        List<RoleDto> roleDtos = roles.stream()
+                .map(this::convertToRoleDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(roleDtos);
     }
 
     @GetMapping("/roles/permission/{permission}")
-    public ResponseEntity<List<Role>> getRolesWithPermission(@PathVariable String permission) {
+    public ResponseEntity<List<RoleDto>> getRolesWithPermission(@PathVariable String permission) {
         List<Role> roles = roleService.getRolesWithPermission(permission);
-        return ResponseEntity.ok(roles);
+        List<RoleDto> roleDtos = roles.stream()
+                .map(this::convertToRoleDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(roleDtos);
     }
 
     // User endpoints
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<UserDto>> getAllUsers() {
         List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+        List<UserDto> userDtos = users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDtos);
     }
 
     @GetMapping("/users/active")
-    public ResponseEntity<List<User>> getActiveUsers() {
+    public ResponseEntity<List<UserDto>> getActiveUsers() {
         List<User> users = userService.getActiveUsers();
-        return ResponseEntity.ok(users);
+        List<UserDto> userDtos = users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDtos);
     }
 
     @GetMapping("/users/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         Optional<User> user = userService.getUserById(id);
-        return user.map(ResponseEntity::ok)
+        return user.map(u -> ResponseEntity.ok(convertToUserDto(u)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/users/search")
-    public ResponseEntity<List<User>> searchUsers(@RequestParam String keyword) {
+    public ResponseEntity<List<UserDto>> searchUsers(@RequestParam String keyword) {
         List<User> users = userService.searchUsers(keyword);
-        return ResponseEntity.ok(users);
+        List<UserDto> userDtos = users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDtos);
     }
 
     @GetMapping("/users/department/{departmentId}")
-    public ResponseEntity<List<User>> getUsersByDepartment(@PathVariable Long departmentId) {
+    public ResponseEntity<List<UserDto>> getUsersByDepartment(@PathVariable Long departmentId) {
         List<User> users = userService.getUsersByDepartment(departmentId);
-        return ResponseEntity.ok(users);
+        List<UserDto> userDtos = users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDtos);
     }
 
     @GetMapping("/users/team/{teamId}")
-    public ResponseEntity<List<User>> getUsersByTeam(@PathVariable Long teamId) {
+    public ResponseEntity<List<UserDto>> getUsersByTeam(@PathVariable Long teamId) {
         List<User> users = userService.getUsersByTeam(teamId);
-        return ResponseEntity.ok(users);
+        List<UserDto> userDtos = users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(userDtos);
     }
 
     // Statistics endpoints
@@ -253,5 +303,54 @@ public class ApiController {
                 role.get().getRoleLevel(), role.get().isActive());
 
         return ResponseEntity.ok(stats);
+    }
+    
+    // Helper methods to convert entities to DTOs
+    
+    private DepartmentDto convertToDepartmentDto(Department department) {
+        DepartmentDto dto = new DepartmentDto();
+        dto.setId(department.getId());
+        dto.setName(department.getName());
+        dto.setDescription(department.getDescription());
+        dto.setCreatedAt(department.getCreatedAt());
+        return dto;
+    }
+    
+    private TeamDto convertToTeamDto(Team team) {
+        TeamDto dto = new TeamDto();
+        dto.setId(team.getId());
+        dto.setName(team.getName());
+        dto.setDescription(team.getDescription());
+        dto.setActive(team.isActive());
+        dto.setDepartmentId(team.getDepartment() != null ? team.getDepartment().getId() : null);
+        dto.setDepartmentName(team.getDepartment() != null ? team.getDepartment().getName() : null);
+        dto.setMemberCount(team.getMemberCount());
+        return dto;
+    }
+    
+    private RoleDto convertToRoleDto(Role role) {
+        RoleDto dto = new RoleDto();
+        dto.setId(role.getId());
+        dto.setName(role.getName());
+        dto.setDescription(role.getDescription());
+        dto.setRoleLevel(role.getRoleLevel());
+        dto.setActive(role.getActive());
+        dto.setPermissions(role.getPermissions());
+        dto.setUserCount(roleService.getUserCount(role.getId()));
+        return dto;
+    }
+    
+    private UserDto convertToUserDto(User user) {
+        UserDto dto = new UserDto();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEnabled(user.isEnabled());
+        dto.setTeamId(user.getTeam() != null ? user.getTeam().getId() : null);
+        dto.setTeamName(user.getTeam() != null ? user.getTeam().getName() : null);
+        dto.setTeamMemberCount(user.getTeam() != null ? user.getTeam().getMemberCount() : null);
+        return dto;
     }
 }

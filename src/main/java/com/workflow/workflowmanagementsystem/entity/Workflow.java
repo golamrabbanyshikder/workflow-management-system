@@ -1,5 +1,7 @@
 package com.workflow.workflowmanagementsystem.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -30,10 +32,12 @@ public class Workflow {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User createdBy;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Department department;
     
     @Column(name = "is_active", nullable = false)
@@ -46,7 +50,12 @@ public class Workflow {
     private LocalDateTime updatedAt;
     
     @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Task> tasks = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<WorkflowStatusLayer> statusLayers = new ArrayList<>();
     
     // Constructors
     public Workflow() {}
@@ -138,6 +147,30 @@ public class Workflow {
     
     public void setTasks(List<Task> tasks) {
         this.tasks = tasks;
+    }
+    
+    public List<WorkflowStatusLayer> getStatusLayers() {
+        return statusLayers;
+    }
+    
+    public void setStatusLayers(List<WorkflowStatusLayer> statusLayers) {
+        this.statusLayers = statusLayers;
+    }
+    
+    public void addStatusLayer(WorkflowStatusLayer statusLayer) {
+        statusLayers.add(statusLayer);
+        statusLayer.setWorkflow(this);
+    }
+    
+    public void removeStatusLayer(WorkflowStatusLayer statusLayer) {
+        statusLayers.remove(statusLayer);
+        statusLayer.setWorkflow(null);
+    }
+    
+    public WorkflowStatusLayer getFirstStatusLayer() {
+        return statusLayers.stream()
+                .min((s1, s2) -> Integer.compare(s1.getOrder(), s2.getOrder()))
+                .orElse(null);
     }
     
     @PreUpdate

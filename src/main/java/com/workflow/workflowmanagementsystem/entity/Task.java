@@ -1,5 +1,6 @@
 package com.workflow.workflowmanagementsystem.entity;
 
+import com.workflow.workflowmanagementsystem.util.TaskStatusUtil;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,9 +26,11 @@ public class Task {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private TaskStatus status = TaskStatus.PENDING;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workflow_status_layer_id")
+    private WorkflowStatusLayer workflowStatusLayer;
+    
+    // Status is now fully derived from workflowStatusLayer - no direct status field needed
     
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false)
@@ -105,15 +108,28 @@ public class Task {
     }
     
     public TaskStatus getStatus() {
-        return status;
-    }
-    
-    public void setStatus(TaskStatus status) {
-        this.status = status;
-        if (status == TaskStatus.COMPLETED && this.completedAt == null) {
-            this.completedAt = LocalDateTime.now();
+        // Status is fully derived from workflowStatusLayer using utility class
+        if (workflowStatusLayer == null) {
+            return TaskStatus.PENDING;
+        }
+        
+        // Check if the status layer name maps to a specific status
+        String layerName = workflowStatusLayer.getName().toLowerCase();
+        if (workflowStatusLayer.getIsFinal()) {
+            return TaskStatus.COMPLETED;
+        } else if (layerName.contains("hold") || layerName.contains("pause")) {
+            return TaskStatus.ON_HOLD;
+        } else if (layerName.contains("cancel")) {
+            return TaskStatus.CANCELLED;
+        } else if (layerName.contains("progress") || layerName.contains("active")) {
+            return TaskStatus.IN_PROGRESS;
+        } else {
+            // Default to PENDING for any other non-final status
+            return TaskStatus.PENDING;
         }
     }
+    
+    // setStatus method removed as status is now fully derived from workflowStatusLayer
     
     public TaskPriority getPriority() {
         return priority;
@@ -203,6 +219,22 @@ public class Task {
         this.comments = comments;
     }
     
+    public WorkflowStatusLayer getWorkflowStatusLayer() {
+        return workflowStatusLayer;
+    }
+    
+    public void setWorkflowStatusLayer(WorkflowStatusLayer workflowStatusLayer) {
+        this.workflowStatusLayer = workflowStatusLayer;
+        
+        // Auto-manage completedAt based on workflow status layer
+        if (workflowStatusLayer != null && workflowStatusLayer.getIsFinal() && this.completedAt == null) {
+            this.completedAt = LocalDateTime.now();
+        } else if (workflowStatusLayer == null || !workflowStatusLayer.getIsFinal()) {
+            // Clear completedAt if moving away from final status
+            this.completedAt = null;
+        }
+    }
+    
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
@@ -215,7 +247,7 @@ public class Task {
         }
     }
     
-    // Task Status Enum
+    // Task Status Enum - kept for compatibility but derived from workflow status layer
     public enum TaskStatus {
         PENDING("Pending"),
         IN_PROGRESS("In Progress"),
@@ -257,7 +289,7 @@ public class Task {
         return "Task{" +
                 "id=" + id +
                 ", title='" + title + '\'' +
-                ", status=" + status +
+                ", status=" + getStatus() +
                 ", priority=" + priority +
                 ", dueDate=" + dueDate +
                 '}';

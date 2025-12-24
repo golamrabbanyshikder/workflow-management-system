@@ -151,10 +151,15 @@
                                             <a th:href="@{/tasks/view/{id}(id=${task.id})}" th:text="${task.title}"></a>
                                         </td>
                                         <td>
-                                            <span th:class="|badge ${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-success' :
-                                                           task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 'bg-primary' :
-                                                           task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 'bg-warning' :
-                                                           task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 'bg-info' : 'bg-danger'}|"
+                                            <span th:if="${task.workflowStatusLayer != null}"
+                                                  th:class="|badge|"
+                                                  th:style="'background-color: ' + ${task.workflowStatusLayer.color} + '; color: white;'"
+                                                  th:text="${task.workflowStatusLayer.name}"></span>
+                                            <span th:if="${task.workflowStatusLayer == null}"
+                                                  th:class="|badge ${task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).COMPLETED ? 'bg-success' :
+                                                                 task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).IN_PROGRESS ? 'bg-primary' :
+                                                                 task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).PENDING ? 'bg-warning' :
+                                                                 task.status == T(com.workflow.workflowmanagementsystem.entity.Task.TaskStatus).ON_HOLD ? 'bg-info' : 'bg-danger'}|"
                                                   th:text="${task.status.displayName}"></span>
                                         </td>
                                         <td>
@@ -171,6 +176,19 @@
                                                 <a th:href="@{/tasks/view/{id}(id=${task.id})}" class="btn btn-outline-primary" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
+                                                <div th:if="${task.workflowStatusLayer != null}" class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-outline-info dropdown-toggle" data-bs-toggle="dropdown" title="Change Status">
+                                                        <i class="fas fa-exchange-alt"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu" id="statusMenu-${task.id}">
+                                                        <!-- Status options will be loaded dynamically -->
+                                                        <li><span class="dropdown-item text-center">
+                                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                                <span class="visually-hidden">Loading...</span>
+                                                            </div>
+                                                        </span></li>
+                                                    </ul>
+                                                </div>
                                                 <a th:href="@{/tasks/edit/{id}(id=${task.id})}" class="btn btn-outline-secondary" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
@@ -282,6 +300,64 @@
                 form.appendChild(input);
             }
             
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // Load workflow status options for all tasks in table
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusMenus = document.querySelectorAll('[id^="statusMenu-"]');
+            
+            statusMenus.forEach(menu => {
+                const taskId = menu.id.replace('statusMenu-', '');
+                
+                fetch(`/tasks/api/next-status-layers/${taskId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        menu.innerHTML = '';
+                        
+                        if (data && data.length > 0) {
+                            data.forEach(statusLayer => {
+                                const li = document.createElement('li');
+                                const a = document.createElement('a');
+                                a.className = 'dropdown-item';
+                                a.href = '#';
+                                a.innerHTML = `<span style="display: inline-block; width: 12px; height: 12px; background-color: ${statusLayer.color}; border-radius: 2px; margin-right: 8px;"></span>${statusLayer.name}`;
+                                a.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    changeWorkflowStatus(taskId, statusLayer.id);
+                                });
+                                li.appendChild(a);
+                                menu.appendChild(li);
+                            });
+                        } else {
+                            const li = document.createElement('li');
+                            const span = document.createElement('span');
+                            span.className = 'dropdown-item text-muted';
+                            span.textContent = 'No next status available';
+                            li.appendChild(span);
+                            menu.appendChild(li);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading workflow status layers:', error);
+                        menu.innerHTML = '<li><span class="dropdown-item text-danger">Error loading status options</span></li>';
+                    });
+            });
+        });
+        
+        // Change workflow status
+        function changeWorkflowStatus(taskId, statusLayerId) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/tasks/workflow-status/${taskId}`;
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'workflowStatusLayerId';
+            input.value = statusLayerId;
+            
+            form.appendChild(input);
             document.body.appendChild(form);
             form.submit();
         }

@@ -378,6 +378,9 @@
                         <button class="btn btn-outline-secondary btn-sm" onclick="exportToCSV()">
                             <i class="fas fa-file-csv me-1"></i>Export CSV
                         </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf me-1"></i>Export PDF
+                        </button>
                         <button class="btn btn-outline-secondary btn-sm" onclick="printTable()">
                             <i class="fas fa-print me-1"></i>Print
                         </button>
@@ -868,6 +871,10 @@
             a.href = url;
             a.download = 'roles_export.csv';
             a.click();
+        }
+
+        function exportToPDF() {
+            window.location.href = '/admin/roles/export/pdf';
         }
 
         function printTable() {

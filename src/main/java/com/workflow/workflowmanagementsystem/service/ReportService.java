@@ -244,13 +244,18 @@ public class ReportService {
             
             switch (reportType) {
                 case "Workflow Summary":
+                case "Workflow Report":
                     exportWorkflowSummaryToCSV(report, csvWriter);
                     break;
                 case "Task Performance":
+                case "Task Report":
                     exportTaskPerformanceToCSV(report, csvWriter);
                     break;
                 case "User Productivity":
                     exportUserProductivityToCSV(report, csvWriter);
+                    break;
+                case "Audit Logs":
+                    exportAuditLogsToCSV(report, csvWriter);
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown report type: " + reportType);
@@ -316,22 +321,52 @@ public class ReportService {
     // Export user productivity to CSV
     private void exportUserProductivityToCSV(Map<String, Object> report, CSVWriter csvWriter) {
         // Header
-        String[] header = {"Username", "Total Tasks", "Completed Tasks", "Overdue Tasks", 
+        String[] header = {"Username", "Total Tasks", "Completed Tasks",
                            "Completion Rate (%)", "Average Completion Days"};
+        csvWriter.writeNext(header);
+        
+        // Data - check for both possible keys to handle different report formats
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> userData = (List<Map<String, Object>>) report.get("users");
+        
+        if (userData == null) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> userProductivity = (List<Map<String, Object>>) report.get("userProductivity");
+            userData = userProductivity;
+        }
+        
+        if (userData != null) {
+            for (Map<String, Object> user : userData) {
+                String[] row = {
+                    (String) user.get("username"),
+                    user.get("totalTasks").toString(),
+                    user.get("completedTasks").toString(),
+                    user.get("completionRate").toString(),
+                    user.get("averageCompletionDays").toString()
+                };
+                csvWriter.writeNext(row);
+            }
+        }
+    }
+    
+    // Export audit logs to CSV
+    private void exportAuditLogsToCSV(Map<String, Object> report, CSVWriter csvWriter) {
+        // Header
+        String[] header = {"Date/Time", "Action", "Entity Type", "Description", "User", "IP Address"};
         csvWriter.writeNext(header);
         
         // Data
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> userProductivity = (List<Map<String, Object>>) report.get("userProductivity");
+        List<Map<String, Object>> auditLogs = (List<Map<String, Object>>) report.get("auditLogs");
         
-        for (Map<String, Object> user : userProductivity) {
+        for (Map<String, Object> log : auditLogs) {
             String[] row = {
-                (String) user.get("username"),
-                user.get("totalTasks").toString(),
-                user.get("completedTasks").toString(),
-                user.get("overdueTasks").toString(),
-                user.get("completionRate").toString(),
-                user.get("averageCompletionDays").toString()
+                (String) log.get("createdAt"),
+                (String) log.get("action"),
+                (String) log.get("entityType"),
+                (String) log.get("description"),
+                (String) log.get("user"),
+                (String) log.get("ipAddress")
             };
             csvWriter.writeNext(row);
         }

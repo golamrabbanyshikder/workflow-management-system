@@ -35,15 +35,34 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
+                                        <label for="department" class="form-label">Department *</label>
+                                        <select class="form-select" id="department" required>
+                                            <option value="">Select Department</option>
+                                            <option th:each="department : ${departments}"
+                                                    th:value="${department.id}"
+                                                    th:text="${department.name}"></option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
                                         <label for="workflow" class="form-label">Workflow *</label>
-                                        <select class="form-select" id="workflow" th:field="*{workflow.id}" required>
-                                            <option value="">Select Workflow</option>
-                                            <option th:each="workflow : ${workflows}" 
-                                                    th:value="${workflow.id}" 
-                                                    th:text="${workflow.name}"
-                                                    th:selected="${task.workflow != null and task.workflow.id == workflow.id}"></option>
+                                        <select class="form-select" id="workflow" th:field="*{workflow.id}" required disabled>
+                                            <option value="">Select Department First</option>
                                         </select>
                                         <div class="invalid-feedback" th:if="${#fields.hasErrors('workflow')}" th:errors="*{workflow}"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="workflowStatusContainer" style="display: none;">
+                                    <div class="mb-3">
+                                        <label for="workflowStatusLayer" class="form-label">Task Status (Workflow Layer) *</label>
+                                        <select class="form-select" id="workflowStatusLayer" name="workflowStatusLayerId" required>
+                                            <option value="">Select Workflow Status</option>
+                                        </select>
+                                        <small class="form-text text-muted">Select the initial workflow status for this task</small>
                                     </div>
                                 </div>
                             </div>
@@ -57,21 +76,10 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="mb-3">
-                                        <label for="status" class="form-label">Status</label>
-                                        <select class="form-select" id="status" th:field="*{status}">
-                                            <option th:each="status : ${statusOptions}" 
-                                                    th:value="${status}" 
-                                                    th:text="${status.displayName}"
-                                                    th:selected="${task.status == status}"></option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
                                         <label for="priority" class="form-label">Priority</label>
                                         <select class="form-select" id="priority" th:field="*{priority}">
-                                            <option th:each="priority : ${priorityOptions}" 
-                                                    th:value="${priority}" 
+                                            <option th:each="priority : ${priorityOptions}"
+                                                    th:value="${priority}"
                                                     th:text="${priority.displayName}"
                                                     th:selected="${task.priority == priority}"></option>
                                         </select>
@@ -133,5 +141,91 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to load workflows based on selected department
+        function loadWorkflowsByDepartment(departmentId) {
+            const workflowSelect = document.getElementById('workflow');
+            
+            if (!departmentId) {
+                workflowSelect.innerHTML = '<option value="">Select Department First</option>';
+                workflowSelect.disabled = true;
+                document.getElementById('workflowStatusLayerContainer').style.display = 'none';
+                return;
+            }
+            
+            fetch(`/tasks/api/workflows-by-department/${departmentId}`)
+                .then(response => response.json())
+                .then(workflows => {
+                    workflowSelect.innerHTML = '<option value="">Select Workflow</option>';
+                    workflowSelect.disabled = false;
+                    
+                    workflows.forEach(workflow => {
+                        const option = document.createElement('option');
+                        option.value = workflow.id;
+                        option.textContent = workflow.name;
+                        workflowSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading workflows:', error);
+                    workflowSelect.innerHTML = '<option value="">Error loading workflows</option>';
+                    workflowSelect.disabled = true;
+                });
+        }
+        
+        // Function to load workflow status layers dynamically
+        function loadWorkflowStatusLayers(workflowId) {
+            const statusContainer = document.getElementById('workflowStatusContainer');
+            const statusSelect = document.getElementById('workflowStatusLayer');
+            
+            if (!workflowId) {
+                statusContainer.style.display = 'none';
+                return;
+            }
+            
+            fetch(`/tasks/api/status-layers-by-workflow/${workflowId}`)
+                .then(response => response.json())
+                .then(statusLayers => {
+                    statusSelect.innerHTML = '<option value="">Select Workflow Status</option>';
+                    
+                    statusLayers.forEach(statusLayer => {
+                        const option = document.createElement('option');
+                        option.value = statusLayer.id;
+                        option.textContent = statusLayer.name;
+                        statusSelect.appendChild(option);
+                    });
+                    
+                    statusContainer.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading status layers:', error);
+                    statusContainer.style.display = 'none';
+                });
+        }
+        
+        // Event listener for department selection change
+        document.getElementById('department').addEventListener('change', function() {
+            const departmentId = this.value;
+            loadWorkflowsByDepartment(departmentId);
+            
+            // Clear workflow status layer selection when department changes
+            document.getElementById('workflowStatusContainer').style.display = 'none';
+        });
+        
+        // Event listener for workflow selection change
+        document.getElementById('workflow').addEventListener('change', function() {
+            const workflowId = this.value;
+            loadWorkflowStatusLayers(workflowId);
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // If there's a pre-selected workflow (from URL parameter), try to determine its department
+            const workflowSelect = document.getElementById('workflow');
+            if (workflowSelect && workflowSelect.value) {
+                loadWorkflowStatusLayers(workflowSelect.value);
+            }
+        });
+    </script>
 </body>
 </html>

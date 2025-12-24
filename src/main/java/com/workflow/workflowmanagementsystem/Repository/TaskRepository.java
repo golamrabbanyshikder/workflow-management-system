@@ -17,8 +17,7 @@ import java.util.Optional;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
     
-    // Find tasks by status
-    List<Task> findByStatus(TaskStatus status);
+    // findByStatus method removed as status is now derived from workflowStatusLayer
     
     // Find tasks by priority
     List<Task> findByPriority(TaskPriority priority);
@@ -35,12 +34,12 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     // Find tasks due before a specific date
     List<Task> findByDueDateBefore(LocalDateTime dueDate);
     
-    // Find overdue tasks
-    @Query("SELECT t FROM Task t WHERE t.dueDate < :currentDate AND t.status NOT IN ('COMPLETED', 'CANCELLED')")
+    // Find overdue tasks - updated to check workflow status layer instead of direct status
+    @Query("SELECT t FROM Task t WHERE t.dueDate < :currentDate AND (t.workflowStatusLayer.isFinal = false OR t.workflowStatusLayer IS NULL)")
     List<Task> findOverdueTasks(@Param("currentDate") LocalDateTime currentDate);
     
-    // Find tasks due within next N days
-    @Query("SELECT t FROM Task t WHERE t.dueDate BETWEEN :startDate AND :endDate AND t.status NOT IN ('COMPLETED', 'CANCELLED')")
+    // Find tasks due within next N days - updated to check workflow status layer instead of direct status
+    @Query("SELECT t FROM Task t WHERE t.dueDate BETWEEN :startDate AND :endDate AND (t.workflowStatusLayer.isFinal = false OR t.workflowStatusLayer IS NULL)")
     List<Task> findTasksDueWithinDateRange(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
@@ -51,23 +50,35 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            "LOWER(t.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<Task> searchTasks(@Param("searchTerm") String searchTerm, Pageable pageable);
     
-    // Count tasks by status
-    @Query("SELECT t.status, COUNT(t) FROM Task t GROUP BY t.status")
+    // Count tasks by status - updated to use workflowStatusLayer
+    @Query("SELECT " +
+           "CASE WHEN t.workflowStatusLayer.isFinal = true THEN 'COMPLETED' " +
+           "WHEN t.workflowStatusLayer IS NULL THEN 'PENDING' " +
+           "WHEN LOWER(t.workflowStatusLayer.name) LIKE '%hold%' OR LOWER(t.workflowStatusLayer.name) LIKE '%pause%' THEN 'ON_HOLD' " +
+           "WHEN LOWER(t.workflowStatusLayer.name) LIKE '%cancel%' THEN 'CANCELLED' " +
+           "WHEN LOWER(t.workflowStatusLayer.name) LIKE '%progress%' OR LOWER(t.workflowStatusLayer.name) LIKE '%active%' THEN 'IN_PROGRESS' " +
+           "ELSE 'PENDING' END as status, COUNT(t) FROM Task t GROUP BY status")
     List<Object[]> countTasksByStatus();
     
     // Count tasks by priority
     @Query("SELECT t.priority, COUNT(t) FROM Task t GROUP BY t.priority")
     List<Object[]> countTasksByPriority();
     
-    // Count tasks by assigned user
+    // Count tasks by assigned user - updated to check workflow status layer instead of direct status
     @Query("SELECT u.username, COUNT(t) FROM Task t " +
-           "JOIN t.assignedTo u WHERE t.status NOT IN ('COMPLETED', 'CANCELLED') " +
+           "JOIN t.assignedTo u WHERE (t.workflowStatusLayer.isFinal = false OR t.workflowStatusLayer IS NULL) " +
            "GROUP BY u.username")
     List<Object[]> countTasksByAssignedUser();
     
-    // Find tasks with pagination and filtering
+    // Find tasks with pagination and filtering - updated to handle derived status
     @Query("SELECT t FROM Task t WHERE " +
-           "(:status IS NULL OR t.status = :status) AND " +
+           "(:status IS NULL OR " +
+           "  (:status = 'PENDING' AND (t.workflowStatusLayer IS NULL OR (t.workflowStatusLayer.isFinal = false AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%hold%' AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%progress%' AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%cancel%'))) OR " +
+           "  (:status = 'IN_PROGRESS' AND t.workflowStatusLayer IS NOT NULL AND t.workflowStatusLayer.isFinal = false AND (LOWER(t.workflowStatusLayer.name) LIKE '%progress%' OR LOWER(t.workflowStatusLayer.name) LIKE '%active%')) OR " +
+           "  (:status = 'ON_HOLD' AND t.workflowStatusLayer IS NOT NULL AND t.workflowStatusLayer.isFinal = false AND (LOWER(t.workflowStatusLayer.name) LIKE '%hold%' OR LOWER(t.workflowStatusLayer.name) LIKE '%pause%')) OR " +
+           "  (:status = 'CANCELLED' AND t.workflowStatusLayer IS NOT NULL AND t.workflowStatusLayer.isFinal = false AND LOWER(t.workflowStatusLayer.name) LIKE '%cancel%') OR " +
+           "  (:status = 'COMPLETED' AND t.workflowStatusLayer.isFinal = true)" +
+           ") AND " +
            "(:priority IS NULL OR t.priority = :priority) AND " +
            "(:assignedToId IS NULL OR t.assignedTo.id = :assignedToId) AND " +
            "(:workflowId IS NULL OR t.workflow.id = :workflowId)")
@@ -85,25 +96,31 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
     
-    // Find completed tasks within date range
+    // Find completed tasks within date range - updated to check workflow status layer
     @Query("SELECT t FROM Task t WHERE " +
-           "t.completedAt BETWEEN :startDate AND :endDate AND t.status = 'COMPLETED'")
+           "t.completedAt BETWEEN :startDate AND :endDate AND t.workflowStatusLayer.isFinal = true")
     List<Task> findCompletedTasksByDateRange(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
     
-    // Get task completion statistics
+    // Get task completion statistics - updated to use workflow status layer
     @Query("SELECT COUNT(t) as total, " +
-           "SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) as completed, " +
-           "SUM(CASE WHEN t.status = 'IN_PROGRESS' THEN 1 ELSE 0 END) as inProgress, " +
-           "SUM(CASE WHEN t.status = 'PENDING' THEN 1 ELSE 0 END) as pending " +
+           "SUM(CASE WHEN t.workflowStatusLayer.isFinal = true THEN 1 ELSE 0 END) as completed, " +
+           "SUM(CASE WHEN t.workflowStatusLayer.isFinal = false AND (LOWER(t.workflowStatusLayer.name) LIKE '%progress%' OR LOWER(t.workflowStatusLayer.name) LIKE '%active%') THEN 1 ELSE 0 END) as inProgress, " +
+           "SUM(CASE WHEN t.workflowStatusLayer IS NULL OR (t.workflowStatusLayer.isFinal = false AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%hold%' AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%progress%' AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%cancel%') THEN 1 ELSE 0 END) as pending " +
            "FROM Task t WHERE t.workflow.id = :workflowId")
     Object[] getTaskStatisticsByWorkflow(@Param("workflowId") Long workflowId);
     
-    // Find tasks for a user with specific filters
+    // Find tasks for a user with specific filters - updated to handle derived status
     @Query("SELECT t FROM Task t WHERE " +
            "(t.assignedTo.id = :userId OR t.createdBy.id = :userId) AND " +
-           "(:status IS NULL OR t.status = :status) AND " +
+           "(:status IS NULL OR " +
+           "  (:status = 'PENDING' AND (t.workflowStatusLayer IS NULL OR (t.workflowStatusLayer.isFinal = false AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%hold%' AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%progress%' AND LOWER(t.workflowStatusLayer.name) NOT LIKE '%cancel%'))) OR " +
+           "  (:status = 'IN_PROGRESS' AND t.workflowStatusLayer IS NOT NULL AND t.workflowStatusLayer.isFinal = false AND (LOWER(t.workflowStatusLayer.name) LIKE '%progress%' OR LOWER(t.workflowStatusLayer.name) LIKE '%active%')) OR " +
+           "  (:status = 'ON_HOLD' AND t.workflowStatusLayer IS NOT NULL AND t.workflowStatusLayer.isFinal = false AND (LOWER(t.workflowStatusLayer.name) LIKE '%hold%' OR LOWER(t.workflowStatusLayer.name) LIKE '%pause%')) OR " +
+           "  (:status = 'CANCELLED' AND t.workflowStatusLayer IS NOT NULL AND t.workflowStatusLayer.isFinal = false AND LOWER(t.workflowStatusLayer.name) LIKE '%cancel%') OR " +
+           "  (:status = 'COMPLETED' AND t.workflowStatusLayer.isFinal = true)" +
+           ") AND " +
            "(:priority IS NULL OR t.priority = :priority)")
     Page<Task> findTasksForUser(
             @Param("userId") Long userId,
@@ -116,4 +133,18 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     
     // Check if task title exists in a workflow
     boolean existsByTitleIgnoreCaseAndWorkflowId(String title, Long workflowId);
+    
+    // Find tasks by workflow status layer
+    List<Task> findByWorkflowStatusLayerId(Long workflowStatusLayerId);
+    
+    // Find tasks with workflow status layer filter
+    @Query("SELECT t FROM Task t WHERE " +
+           "t.workflowStatusLayer.id = :workflowStatusLayerId AND " +
+           "(:priority IS NULL OR t.priority = :priority) AND " +
+           "(:assignedToId IS NULL OR t.assignedTo.id = :assignedToId)")
+    Page<Task> findTasksWithWorkflowStatusLayerFilter(
+            @Param("workflowStatusLayerId") Long workflowStatusLayerId,
+            @Param("priority") TaskPriority priority,
+            @Param("assignedToId") Long assignedToId,
+            Pageable pageable);
 }

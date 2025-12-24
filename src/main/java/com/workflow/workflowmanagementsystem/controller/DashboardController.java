@@ -6,6 +6,7 @@ import com.workflow.workflowmanagementsystem.Repository.RoleRepository;
 import com.workflow.workflowmanagementsystem.Repository.TeamRepository;
 import com.workflow.workflowmanagementsystem.Repository.UserRepository;
 import com.workflow.workflowmanagementsystem.Repository.UserRoleRepository;
+import com.workflow.workflowmanagementsystem.dto.DepartmentDto;
 import com.workflow.workflowmanagementsystem.entity.AuditLog;
 import com.workflow.workflowmanagementsystem.entity.Department;
 import com.workflow.workflowmanagementsystem.entity.User;
@@ -133,8 +134,21 @@ public class DashboardController {
     @GetMapping("/api/departments")
     @ResponseBody
     @CrossOrigin(origins = "*", allowedHeaders = "*")
-    public List<Department> getDepartmentsForDashboard() {
-        return departmentService.getAllDepartments();
+    public List<DepartmentDto> getDepartmentsForDashboard() {
+        List<Department> departments = departmentService.getAllDepartments();
+        return departments.stream()
+                .map(this::convertToDepartmentDto)
+                .collect(Collectors.toList());
+    }
+    
+    // Helper method to convert Department to DepartmentDto
+    private DepartmentDto convertToDepartmentDto(Department department) {
+        DepartmentDto dto = new DepartmentDto();
+        dto.setId(department.getId());
+        dto.setName(department.getName());
+        dto.setDescription(department.getDescription());
+        dto.setCreatedAt(department.getCreatedAt());
+        return dto;
     }
     
     // API endpoint for recent activities
@@ -188,6 +202,7 @@ public class DashboardController {
         // Get tasks due soon (within 3 days) as warning notifications
         List<com.workflow.workflowmanagementsystem.entity.Task> tasksDueSoon = taskService.getTasksDueWithinDays(3);
         for (com.workflow.workflowmanagementsystem.entity.Task task : tasksDueSoon) {
+            // Check derived status instead of direct status
             if (task.getStatus() != com.workflow.workflowmanagementsystem.entity.Task.TaskStatus.COMPLETED) {
                 Map<String, Object> notification = new HashMap<>();
                 notification.put("id", System.currentTimeMillis() + Math.random());

@@ -198,74 +198,14 @@
         </div>
         
         <!-- Task Lifecycle Stages -->
-        <div class="lifecycle-stage stage-pending">
-            <div class="stage-icon icon-pending">
-                <i class="fas fa-clock"></i>
+        <div th:each="statusLayer : ${statusLayers}" class="lifecycle-stage"
+             th:style="'background: linear-gradient(135deg, ' + ${statusLayer.color} + ' 0%, ' + ${statusLayer.color} + ' 100%); color: white;'">
+            <div class="stage-icon" th:style="'background-color: ' + ${statusLayer.color} + ';'">
+                <i class="fas" th:class="${statusLayer.isFinal ? 'fa-check' : statusLayer.name.toLowerCase().contains('progress') ? 'fa-spinner fa-spin' : statusLayer.name.toLowerCase().contains('hold') ? 'fa-pause-circle' : 'fa-clock'}"></i>
             </div>
             <div class="stage-content">
-                <div class="stage-title">Pending</div>
-                <div class="stage-description">
-                    Task has been created but not yet started. Waiting for assignment or initial planning.
-                </div>
-            </div>
-        </div>
-        
-        <div class="timeline-connector"></div>
-        
-        <div class="lifecycle-stage stage-in-progress">
-            <div class="stage-icon icon-in-progress">
-                <i class="fas fa-spinner fa-spin"></i>
-            </div>
-            <div class="stage-content">
-                <div class="stage-title">In Progress</div>
-                <div class="stage-description">
-                    Task is actively being worked on. Resources are allocated and work is underway.
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 60%"></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="timeline-connector"></div>
-        
-        <div class="lifecycle-stage stage-on-hold">
-            <div class="stage-icon icon-on-hold">
-                <i class="fas fa-pause-circle"></i>
-            </div>
-            <div class="stage-content">
-                <div class="stage-title">On Hold</div>
-                <div class="stage-description">
-                    Task is temporarily paused. Work may resume later or waiting for dependencies.
-                </div>
-            </div>
-        </div>
-        
-        <div class="timeline-connector"></div>
-        
-        <div class="lifecycle-stage stage-completed">
-            <div class="stage-icon icon-completed">
-                <i class="fas fa-check"></i>
-            </div>
-            <div class="stage-content">
-                <div class="stage-title">Completed</div>
-                <div class="stage-description">
-                    Task has been successfully finished and marked as complete.
-                </div>
-            </div>
-        </div>
-        
-        <div class="timeline-connector"></div>
-        
-        <div class="lifecycle-stage stage-cancelled">
-            <div class="stage-icon icon-cancelled">
-                <i class="fas fa-times"></i>
-            </div>
-            <div class="stage-content">
-                <div class="stage-title">Cancelled</div>
-                <div class="stage-description">
-                    Task was cancelled before completion. No further work will be done.
-                </div>
+                <div class="stage-title" th:text="${statusLayer.name}">Status Layer Name</div>
+                <div class="stage-description" th:text="${statusLayer.description}">Status Layer Description</div>
             </div>
         </div>
     </div>
